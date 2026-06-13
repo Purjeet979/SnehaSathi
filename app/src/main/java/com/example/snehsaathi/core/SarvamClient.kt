@@ -38,7 +38,11 @@ object SarvamClient {
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
         val response = client.newCall(request).execute()
-        val responseStr = response.body?.string() ?: ""
+        val responseBody = response.body
+        if (responseBody == null) {
+            throw Exception("Sarvam API Error: Empty response body")
+        }
+        val responseStr = responseBody.string()
         if (!response.isSuccessful) {
             throw Exception("Sarvam API Error: $responseStr")
         }
@@ -64,7 +68,11 @@ object SarvamClient {
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
         val response = client.newCall(request).execute()
-        val responseStr = response.body?.string() ?: ""
+        val responseBody = response.body
+        if (responseBody == null) {
+            throw Exception("Sarvam TTS Error: Empty response body")
+        }
+        val responseStr = responseBody.string()
         if (!response.isSuccessful) {
             throw Exception("Sarvam TTS Error: $responseStr")
         }
@@ -87,7 +95,11 @@ object SarvamClient {
             .post(body.toString().toRequestBody("application/json".toMediaType()))
             .build()
         val response = client.newCall(request).execute()
-        val responseStr = response.body?.string() ?: ""
+        val responseBody = response.body
+        if (responseBody == null) {
+            throw Exception("Sarvam Translate Error: Empty response body")
+        }
+        val responseStr = responseBody.string()
         if (!response.isSuccessful) {
             throw Exception("Sarvam Translate Error: $responseStr")
         }
