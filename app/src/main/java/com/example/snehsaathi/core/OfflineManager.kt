@@ -44,7 +44,6 @@ object OfflineManager {
                 OfflineDatabase::class.java, "snehsaathi-offline.db"
             )
                 .fallbackToDestructiveMigration()
-                .allowMainThreadQueries()
                 .build()
         }
     }
