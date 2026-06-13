@@ -50,23 +50,56 @@ import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
-    private val aiService: AIService = object : AIService {
-        override suspend fun reply(userText: String): String {
-            return try {
-                val response = com.example.snehsaathi.core.SarvamClient.chat(
-                    listOf(
-                        mapOf("role" to "system", "content" to com.example.snehsaathi.core.Constants.DADI_SYSTEM_PROMPT),
-                        mapOf("role" to "user", "content" to userText)
+    private val appDatabase by lazy {
+        androidx.room.Room.databaseBuilder(
+            applicationContext,
+            com.example.snehsaathi.data.local.AppDatabase::class.java, "snehsaathi-main.db"
+        ).fallbackToDestructiveMigration().build()
+    }
+
+    private val memoryRepository by lazy {
+        com.example.snehsaathi.data.repository.MemoryRepository(
+            appDatabase.memoryDao(),
+            com.example.snehsaathi.data.repository.LocalEmbeddingEngine(applicationContext)
+        )
+    }
+
+    private val aiService: AIService by lazy {
+        object : AIService {
+            override suspend fun reply(userText: String): String {
+                return try {
+                    val profile = com.example.snehsaathi.core.UserProfileManager.getProfile(applicationContext)
+                    val userName = profile?.name ?: "Dadi"
+                    val relation = profile?.relation ?: "Dadi"
+                    val language = profile?.language ?: "hi"
+
+                    val relevantMemories = memoryRepository.retrieveRelevantMemories(userText)
+                    val memoryContext = if (relevantMemories.isNotEmpty()) {
+                        "Previous context to remember: " + relevantMemories.joinToString("; ") + ".\n\n"
+                    } else {
+                        ""
+                    }
+                    
+                    val systemPrompt = com.example.snehsaathi.core.Constants.getSystemPrompt(userName, relation, language) + "\n\n" + memoryContext
+
+                    val response = com.example.snehsaathi.core.SarvamClient.chat(
+                        listOf(
+                            mapOf("role" to "system", "content" to systemPrompt),
+                            mapOf("role" to "user", "content" to userText)
+                        )
                     )
-                )
-                com.example.snehsaathi.core.OfflineManager.insert(
-                    com.example.snehsaathi.core.CachedResponse(userInput = userText, aiResponse = response)
-                )
-                response
-            } catch (e: Exception) {
-                Log.e("AI_SERVICE", "Chat failed", e)
-                val cached = com.example.snehsaathi.core.OfflineManager.getRecent().firstOrNull()
-                cached?.aiResponse ?: "Abhi network nahi hai Dadi, thodi der mein try karein. Aap theek hain?"
+                    
+                    memoryRepository.saveMemory("$relation ($userName) said: $userText. I replied: $response")
+
+                    com.example.snehsaathi.core.OfflineManager.insert(
+                        com.example.snehsaathi.core.CachedResponse(userInput = userText, aiResponse = response)
+                    )
+                    response
+                } catch (e: Exception) {
+                    Log.e("AI_SERVICE", "Chat failed", e)
+                    val cached = com.example.snehsaathi.core.OfflineManager.getRecent().firstOrNull()
+                    cached?.aiResponse ?: "Abhi network nahi hai Dadi, thodi der mein try karein. Aap theek hain?"
+                }
             }
         }
     }
@@ -87,6 +120,18 @@ class MainActivity : ComponentActivity() {
                 "MEDICATION_REMINDER",
                 ExistingPeriodicWorkPolicy.KEEP,
                 work
+            )
+
+            // Schedule Security Check at 10 PM
+            val securityDelay = calculateInitialDelay(22, 0)
+            val securityWork = PeriodicWorkRequestBuilder<com.example.snehsaathi.features.security.SecurityReminderWorker>(24, TimeUnit.HOURS)
+                .setInitialDelay(securityDelay, TimeUnit.MILLISECONDS)
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "SECURITY_REMINDER",
+                ExistingPeriodicWorkPolicy.KEEP,
+                securityWork
             )
         }
 
@@ -133,10 +178,43 @@ fun AppUI(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val ttsManager = remember { TextToSpeechManager(context) }
+    val contacts = remember { com.example.snehsaathi.core.ContactsManager.getContacts(context) }
+    val userProfileState = remember { mutableStateOf(com.example.snehsaathi.core.UserProfileManager.getProfile(context)) }
+    val userProfile = userProfileState.value
 
-    // State for which screen is active: HOME, CHAT
-    var currentScreen by remember { mutableStateOf("HOME") }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (!isGranted) {
+                Log.e("PERMISSIONS", "Microphone permission denied. Voice features will be disabled.")
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            ttsManager.destroy()
+        }
+    }
+
+    val initialScreen = (context as? android.app.Activity)?.intent?.getStringExtra("target_screen")
+        ?: if (userProfile == null || contacts.isEmpty()) "ONBOARDING" else "HOME"
+
+    // State for which screen is active
+    var currentScreen by remember { mutableStateOf(initialScreen) }
+    var hasGreeted by remember { mutableStateOf(false) }
     
+    val navigateTo: (String) -> Unit = { screen ->
+        ttsManager.stop()
+        currentScreen = screen
+    }
+
     // Background brush from the previous design
     val backgroundBrush = Brush.radialGradient(
         listOf(
@@ -149,42 +227,75 @@ fun AppUI(
     )
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundBrush)) {
-        if (currentScreen == "HOME") {
-            HomeScreen(
-                onTalkClick = { currentScreen = "CHAT" },
-                onMedsClick = { ttsManager.speak("दवाई का समय अभी नहीं हुआ है दादी।") },
-                onFamilyClick = { ttsManager.speak("रोहन को मैसेज भेज दिया है।") },
-                onSecurityClick = { ttsManager.speak("सब कुछ सुरक्षित है।") },
-                onSosClick = {
-                    ttsManager.speak("Ghabrana nahi Dadi, main abhi aapke ghar walon ko inform kar raha hoon.")
-                    // SOS logic
-                }
+        when (currentScreen) {
+            "ONBOARDING" -> OnboardingScreen(onFinish = { 
+                userProfileState.value = com.example.snehsaathi.core.UserProfileManager.getProfile(context)
+                navigateTo("HOME") 
+            })
+            "HOME" -> HomeScreen(
+                userName = userProfile?.name ?: "",
+                userRelation = userProfile?.relation ?: "Dadi",
+                userLanguage = userProfile?.language ?: "hi",
+                ttsManager = ttsManager,
+                hasGreeted = hasGreeted,
+                onGreeted = { hasGreeted = true },
+                onLanguageChange = { newLang ->
+                    com.example.snehsaathi.core.UserProfileManager.updateLanguage(context, newLang)
+                    userProfileState.value = com.example.snehsaathi.core.UserProfileManager.getProfile(context)
+                },
+                onTalkClick = { navigateTo("CHAT") },
+                onMedsClick = { navigateTo("MEDS") },
+                onFamilyClick = { navigateTo("FAMILY") },
+                onSecurityClick = { navigateTo("SECURITY") }
             )
-        } else if (currentScreen == "CHAT") {
-            // We can implement the chat interface here or use the breathing mic overlay
-            // For now, a placeholder that lets them go back
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Chat Screen Placeholder", fontSize = 24.sp)
-                Button(onClick = { currentScreen = "HOME" }) {
-                    Text("वापस जाएँ")
-                }
-            }
+            "CHAT" -> ChatScreen(
+                aiService = aiService,
+                userRelation = userProfile?.relation ?: "Dadi",
+                userLanguage = userProfile?.language ?: "hi",
+                ttsManager = ttsManager,
+                onBack = { navigateTo("HOME") }
+            )
+            "MEDS" -> MedsScreen(
+                ttsManager = ttsManager,
+                onBack = { navigateTo("HOME") }
+            )
+            "FAMILY" -> FamilyScreen(onBack = { navigateTo("HOME") })
+            "SECURITY" -> SecurityScreen(
+                ttsManager = ttsManager,
+                onBack = { navigateTo("HOME") }
+            )
         }
     }
 }
 
 @Composable
 fun HomeScreen(
+    userName: String,
+    userRelation: String,
+    userLanguage: String,
+    ttsManager: com.example.snehsaathi.core.TextToSpeechManager,
+    hasGreeted: Boolean,
+    onGreeted: () -> Unit,
+    onLanguageChange: (String) -> Unit,
     onTalkClick: () -> Unit,
     onMedsClick: () -> Unit,
     onFamilyClick: () -> Unit,
-    onSecurityClick: () -> Unit,
-    onSosClick: () -> Unit
+    onSecurityClick: () -> Unit
 ) {
+    val greetingRelation = if (userRelation == "Dada") "दादा जी" else "दादी जी"
+    val greetingText = if (userLanguage == "hi") {
+        "नमस्ते $userName $greetingRelation, कैसे हैं? आप क्या करना चाहेंगे?"
+    } else {
+        "Namaste $userName $greetingRelation, kaise hain? Aap kya karna chahenge?"
+    }
+    
+    LaunchedEffect(hasGreeted) {
+        if (!hasGreeted) {
+            ttsManager.speak(greetingText)
+            onGreeted()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -192,18 +303,38 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
+        // Top Bar with Language Toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Button(
+                onClick = { onLanguageChange(if (userLanguage == "hi") "en" else "hi") },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Text(
+                    text = if (userLanguage == "hi") "हिंदी (hi)" else "English (en)",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(modifier = Modifier.height(32.dp))
             Image(
                 painter = painterResource(id = R.drawable.sneh_saathi_logo),
                 contentDescription = "Sneh Saathi Logo",
                 modifier = Modifier.size(160.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
+            
+            val displayGreeting = if (userLanguage == "hi") "नमस्ते $userName $greetingRelation, कैसे हैं?" else "Namaste $userName $greetingRelation, kaise hain?"
             Text(
-                text = "नमस्ते Dadi, कैसी हैं?",
+                text = displayGreeting,
                 style = MaterialTheme.typography.titleMedium,
-                fontSize = 28.sp
+                fontSize = 28.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
 
@@ -241,7 +372,7 @@ fun HomeScreen(
             }
         }
 
-        com.example.snehsaathi.features.sos.SosButton(onSosTriggered = onSosClick)
+        com.example.snehsaathi.features.sos.SosButton()
     }
 }
 
