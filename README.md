@@ -3,110 +3,68 @@
 **Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users, especially those living alone.  
 It focuses on **emotional well-being, safety, memory, and family connection**, using simple Hinglish conversations instead of complex interfaces.
 
----
-
-## 🧠 Problem Statement
-
-Many elderly people:
-- Feel lonely and unheard
-- Struggle with modern smartphone interfaces
-- Are vulnerable to phone scams (OTP, fake KYC calls)
-- Forget medicines or daily routines
-- Feel disconnected from family members who are busy
-
-**Sneh Saathi** addresses these issues through a **human-like voice companion** that listens patiently and responds with empathy.
+> *"Technology should not replace humans — it should bring them closer."*  
 
 ---
 
-## 🌟 Key Features
+## 🚀 Recent Major Updates (The Senior Dev Upgrade)
 
-### 1️⃣ Voice-Based Companion (Core)
-- Fully voice-driven interaction (no typing required)
-- Calm, respectful Hinglish responses
-- Always addresses the user as **“Dadi”** and **“Aap”**
-- Avoids child-like or disrespectful terms (e.g. *beta*)
+We've completely overhauled Sneh Saathi based on a deep analysis of Indian elderly pain points. The app has shifted from a basic utility to an **offline-first, emotionally intelligent companion** with a massive UI/UX overhaul.
 
----
+### ✨ The UI/UX Paradigm Shift
+- **The 3 Laws of Sneh Saathi UX:** 
+  1. *One Screen, One Job* 
+  2. *Every Error Must Self-Resolve* 
+  3. *The App Must Never Feel Like Technology*
+- **4-Button Radial Home Screen:** We discarded complex tab bars for a hyper-legible 4-button layout (Talk, Meds, Family, Security) anchored by a massive SOS button.
+- **Voice-First Onboarding:** No emails, no OTPs, no typing. The app asks for the user's name, family members, and medications entirely through a 3-step voice conversation.
+- **Accessible Aesthetics:** Implemented a high-contrast, warm cream palette (`#FFF8F0`) with large, 22sp minimum typography and 1.5x line heights optimized for aging eyes.
+- **Breathing Mic Interaction:** A color-shifting, pulsing microphone button that acts as a visual anchor and speaks its current state (Listening, Thinking) aloud.
 
-### 2️⃣ 🛡️ Scam Shield (Safety First)
-- Detects scam-related keywords like:
-  - OTP
-  - Bank / KYC
-  - Police threats
-- Immediately warns the user **not to share information**
-- Encourages contacting family (e.g. grandson Rohan)
-
-**Impact:** Prevents financial and emotional exploitation.
-
----
-
-### 3️⃣ 🧠 Contextual Memory (Firebase)
-- Remembers important, recurring details:
-  - Health issues (BP, knee pain)
-  - Family references
-  - Ongoing concerns
-- Uses memory naturally in conversation  
-  _“Kal pair ka dard bola tha aapne, aaj thoda theek lag raha hai?”_
+### 🌟 New "WOW" Features
+- **Rooh Pehchaan (Emotional Subtext Detection):** Analyzes speech energy, speaking rate, and pitch variance to detect if Dadi is sad, anxious, or confused, automatically shifting the AI's response tone to match.
+- **Parivaar Bridge (Silent Family Dashboard):** Generates a daily, non-invasive summary of Dadi's emotional state and interactions, designed to be piped directly to the family's WhatsApp.
+- **Bhajan & Kahaani (Goodnight Mode):** An offline content library that can proactively play familiar bhajans if Dadi is inactive around 9 PM.
+- **Aaj Ka Din (Morning Ritual):** A background worker that wakes up at 7:00 AM to proactively greet Dadi with "Jai Shri Krishna" and start a gentle morning conversation.
+- **Yaadein (Photo Memories):** A simplified, 1-tap camera interface designed for Dadi to take photos which the AI then weaves into beautiful Hinglish memory stories.
+- **Swaasthya Baatein (Conversational Health Log):** Silently extracts health complaints (e.g., "Mera ghutna dard kar raha hai") from casual conversation and logs them to a database to detect patterns over time.
 
 ---
 
-### 4️⃣ 🕰️ Nostalgia Mode
-- Detects when the user talks about the past (“pehle”, “yaad hai”)
-- Responds gently without interrogation
-- Encourages comforting memories instead of questioning
+## 🧩 Architecture & Technology Stack
+
+Sneh Saathi has been migrated to a robust, modern **Clean Architecture** (Data, Domain, Presentation) optimized for offline resilience and privacy.
+
+### 📱 Frontend (Android)
+- **Kotlin & Jetpack Compose:** Fully declarative UI using modern Material 3 guidelines adapted for extreme accessibility.
+- **Accompanist Permissions:** Seamless, localized permission requests for Audio, Camera, and Call/SMS (for the SOS feature).
+- **Hilt (Dependency Injection):** For clean, decoupled module management.
+
+### ⚙️ Core Systems (Offline-First)
+- **Room Database:** Local persistence layer caching `Memories`, `Conversations`, `Medications`, and `HealthLogs`.
+- **LiteRT (TensorFlow Lite):** Runs `embedding_model.tflite` directly on-device to generate vector embeddings for the local memory retrieval (RAG) pipeline.
+- **DataStore:** Replaced SharedPreferences for type-safe, reactive storage of Dadi's preferences (Voice Speed, Contacts).
+- **WorkManager:** Guaranteed background execution for `MedicationReminderWorker`, `MorningRitualWorker`, and `ParivaarBridgeWorker`—even after device reboots.
+- **ConnectivityObserver:** Uses Kotlin `Flow` to detect network drops and smoothly transition the app into a fully offline fallback mode.
+
+### 🤖 AI & NLP
+- **Sarvam AI (Cloud):** Highly-tuned LLM specialized in authentic Indian Hinglish context.
+- **Offline TTS Manager:** Android's native Text-to-Speech specifically initialized for `hi-IN` with optimized pitch and speech rates for a natural, elderly-friendly cadence.
+- **On-Device RAG (Retrieval-Augmented Generation):** Matches Dadi's current prompt against her `MemoryEntity` table using cosine similarity on the LiteRT embeddings.
 
 ---
 
-### 5️⃣ 💊 Medication Reminder
-- Scheduled daily reminders using **WorkManager**
-- Gentle voice reminders (not alarms)
-- Example:  
-  _“Dadi, baaton baaton mein bhool na jaayein, dawa ka time ho gaya hai.”_
-
----
-
-### 6️⃣ ✍️ Grandma’s Ghostwriter (WOW Feature)
-- Daily conversations are summarized and stored in Firebase
-- A weekly script generates a **heartfelt message in Dadi’s voice**
-- Sent to family via WhatsApp (demoed using Twilio)
-
-**Example message:**
-> “Rohan, is hafte pair thoda dard kar raha tha, par maine kheer banayi. Tumhari yaad aayi. Jab time mile call karna. – Dadi”
-
-This **closes the loneliness loop** by prompting family to reconnect.
-
----
-
-### 7️⃣ 🤝 Volunteers (Planned – Phase 2)
-- Designed as a **human-in-the-loop safety net**
-- When emotional distress is detected, trusted volunteers or family can step in
-- Ensures AI is not the only support in critical moments
-
----
-
-## 🧩 Technology Stack
-
-### 📱 Frontend
-- Android (Kotlin)
-- Jetpack Compose
-- Text-to-Speech (Hindi)
-- SpeechRecognizer API
-
-### ☁️ Backend / Cloud
-- **Firebase Firestore** (memory, summaries)
-- Firebase WorkManager (reminders)
-- Local Node.js script for Ghostwriter demo
-
-### 🤖 AI
-- Groq API (LLM responses)
-- Prompt-engineered personality system (elder-safe)
+## 🛡️ Scam Shield Upgrade
+Financial scams are the #1 fear for elderly smartphone users in India. 
+- **Pattern & Context Scoring:** Upgraded from simple keyword matching to a weighted scoring system that analyzes the urgency and context of messages (e.g., "UPI", "Bank KYC", "Urgent").
+- **Visual & Audio Alarms:** Triggers a high-contrast soft-red `ScamWarningDialog` that immediately advises Dadi to hang up and contact her family.
 
 ---
 
 ## 🟢 Google Technology Usage (Mandatory Requirement)
-- **Firebase Firestore**
-- Firebase background services
-- (Gemini planned for extended deployment)
+- **Firebase Firestore:** Backup layer for memories and family summaries.
+- **Firebase Background Services.**
+- **TensorFlow Lite (LiteRT):** Core to the on-device memory embedding engine.
 
 ---
 
@@ -116,29 +74,12 @@ This **closes the loneliness loop** by prompting family to reconnect.
   https://github.com/Purjeet979/HackWins
 
 - **Demo Video (3 minutes):**  
- https://drive.google.com/drive/folders/17j_PTlFP8RmSxmHQ0Uu3O9PmVIW0VLa6?usp=sharing
-
-  
-
-## 🧡 Why Sneh Saathi Matters
-
-Sneh Saathi is not just an app — it is:
-- A listener
-- A protector
-- A reminder
-- A bridge between generations
-
-It is designed with **dignity, empathy, and safety** at its core.
+  [Google Drive Link](https://drive.google.com/drive/folders/17j_PTlFP8RmSxmHQ0Uu3O9PmVIW0VLa6?usp=sharing)
 
 ---
 
 ## 👥 Team
 
 - **Developer:** Purjeet  
-- **UI / Design:** Soham,Adiya 
+- **UI / Design:** Soham, Adiya 
 - **Project:** Hackathon Submission
-
----
-
-> “Technology should not replace humans — it should bring them closer.”  
-> **— Sneh Saathi**
