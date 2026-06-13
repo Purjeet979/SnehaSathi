@@ -35,6 +35,30 @@ Sneh Saathi is designed from the ground up based on a deep analysis of Indian el
 
 Sneh Saathi has been migrated to a robust, modern **Clean Architecture** (Data, Domain, Presentation) optimized for offline resilience and privacy.
 
+### 📁 Folder Structure
+```text
+app/src/main/java/com/example/snehsaathi/
+├── core/                  # Network observers, TTS, clients, and global helpers
+├── data/
+│   ├── local/             # Room DB, DAOs, Entities, DataStore
+│   └── repository/        # RAG implementation, TFLite Embeddings
+├── features/              # Feature-packaged vertical slices
+│   ├── content/           # Bhajan & Kahaani offline logic
+│   ├── emotion/           # Voice Emotion Classifier (Rooh Pehchaan)
+│   ├── family/            # Parivaar Bridge Worker
+│   ├── medication/        # Medication Reminder Worker
+│   ├── morning/           # Morning Ritual Worker
+│   ├── onboarding/        # Voice-first Onboarding Flow
+│   ├── scamshield/        # Scam Detector & Warning Dialog
+│   ├── sos/               # SOS Compose Buttons & Accompanist Permissions
+│   └── yaadein/           # UI for capturing Photo Memories
+├── presentation/          # ViewModels (e.g., ChatViewModel)
+└── ui/
+    ├── components/        # Reusable Compose (BreathingMic, ChatBubble)
+    ├── main/              # MainActivity (4-Button Radial Home Screen)
+    └── theme/             # High-contrast Colors, Typography, and Theme
+```
+
 ### 📱 Frontend (Android)
 - **Kotlin & Jetpack Compose:** Fully declarative UI using modern Material 3 guidelines adapted for extreme accessibility.
 - **Accompanist Permissions:** Seamless, localized permission requests for Audio, Camera, and Call/SMS (for the SOS feature).
