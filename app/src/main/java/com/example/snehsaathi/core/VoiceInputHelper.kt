@@ -19,6 +19,7 @@ import java.util.concurrent.TimeUnit
 
 class VoiceInputHelper(
     private val context: Context,
+    private val languageCode: String = "hi-IN",
     private val onResult: (String) -> Unit,
     private val onListeningStart: () -> Unit,
     private val onListeningStop: () -> Unit,
@@ -73,6 +74,8 @@ class VoiceInputHelper(
 
             while (isRecording) {
                 delay(checkInterval)
+                // Check isRecording again in case stopListening was called from elsewhere
+                if (!isRecording) break
                 val amplitude = mediaRecorder?.maxAmplitude ?: 0
                 if (amplitude < threshold) {
                     silenceDuration += checkInterval
@@ -80,7 +83,7 @@ class VoiceInputHelper(
                     silenceDuration = 0
                 }
 
-                if (silenceDuration > 1500) { // 1.5 seconds of silence
+                if (silenceDuration > 4000) { // 4.0 seconds of silence
                     Log.d("VOICE_DEBUG", "Silence detected, stopping...")
                     withContext(Dispatchers.Main) {
                         stopListening()
@@ -141,7 +144,7 @@ class VoiceInputHelper(
             .addFormDataPart("file", file.name,
                 file.asRequestBody("audio/mp4".toMediaType()))
             .addFormDataPart("model", "saaras:v3")
-            .addFormDataPart("language_code", "hi-IN")
+            .addFormDataPart("language_code", languageCode)
             .addFormDataPart("mode", "codemix")
             .build()
 
@@ -163,5 +166,6 @@ class VoiceInputHelper(
         if (isRecording) {
             stopListening()
         }
+        scope.cancel()
     }
 }
