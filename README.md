@@ -7,9 +7,9 @@ It focuses on **emotional well-being, safety, memory, and family connection**, u
 
 ---
 
-## 🚀 Recent Major Updates (The Senior Dev Upgrade)
+## 🚀 Key Features
 
-We've completely overhauled Sneh Saathi based on a deep analysis of Indian elderly pain points. The app has shifted from a basic utility to an **offline-first, emotionally intelligent companion** with a massive UI/UX overhaul.
+Sneh Saathi is designed from the ground up based on a deep analysis of Indian elderly pain points. It is an **offline-first, emotionally intelligent companion** with a highly accessible UI/UX.
 
 ### ✨ The UI/UX Paradigm Shift
 - **The 3 Laws of Sneh Saathi UX:** 
@@ -21,7 +21,7 @@ We've completely overhauled Sneh Saathi based on a deep analysis of Indian elder
 - **Accessible Aesthetics:** Implemented a high-contrast, warm cream palette (`#FFF8F0`) with large, 22sp minimum typography and 1.5x line heights optimized for aging eyes.
 - **Breathing Mic Interaction:** A color-shifting, pulsing microphone button that acts as a visual anchor and speaks its current state (Listening, Thinking) aloud.
 
-### 🌟 New "WOW" Features
+### 🌟 Standout Capabilities
 - **Rooh Pehchaan (Emotional Subtext Detection):** Analyzes speech energy, speaking rate, and pitch variance to detect if Dadi is sad, anxious, or confused, automatically shifting the AI's response tone to match.
 - **Parivaar Bridge (Silent Family Dashboard):** Generates a daily, non-invasive summary of Dadi's emotional state and interactions, designed to be piped directly to the family's WhatsApp.
 - **Bhajan & Kahaani (Goodnight Mode):** An offline content library that can proactively play familiar bhajans if Dadi is inactive around 9 PM.
