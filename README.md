@@ -81,5 +81,4 @@ Financial scams are the #1 fear for elderly smartphone users in India.
 ## 👥 Team
 
 - **Developer:** Purjeet  
-- **UI / Design:** Soham, Adiya 
 - **Project:** Hackathon Submission
