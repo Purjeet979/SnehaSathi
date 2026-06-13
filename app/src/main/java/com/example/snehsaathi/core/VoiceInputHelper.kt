@@ -1,97 +1,167 @@
 package com.example.snehsaathi.core
 
 import android.content.Context
-import android.content.Intent
-import android.os.Bundle
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
+import android.media.MediaRecorder
+import android.media.ToneGenerator
+import android.media.AudioManager
+import android.os.Build
 import android.util.Log
-import java.util.Locale
+import com.example.snehsaathi.BuildConfig
+import kotlinx.coroutines.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 class VoiceInputHelper(
-    context: Context,
+    private val context: Context,
     private val onResult: (String) -> Unit,
     private val onListeningStart: () -> Unit,
     private val onListeningStop: () -> Unit,
-    private val onRmsLevel: ((Float) -> Unit)? = null // ✅ OPTIONAL, SAFE
+    private val onRmsLevel: ((Float) -> Unit)? = null // 🔊 KEEP SAFE, AVOID RECURSION
 ) {
-
-    private val speechRecognizer: SpeechRecognizer =
-        SpeechRecognizer.createSpeechRecognizer(context)
-
-    private var lastRmsUpdate = 0L
-
-    init {
-        speechRecognizer.setRecognitionListener(object : RecognitionListener {
-
-            override fun onReadyForSpeech(params: Bundle?) {
-                Log.d("VOICE_DEBUG", "Ready for speech")
-                onListeningStart()
-            }
-
-            override fun onBeginningOfSpeech() {
-                Log.d("VOICE_DEBUG", "Speech started")
-            }
-
-            override fun onResults(results: Bundle) {
-                val text =
-                    results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()
-
-                Log.d("VOICE_DEBUG", "Speech results: $text")
-
-                onListeningStop()
-
-                if (!text.isNullOrBlank()) {
-                    onResult(text)
-                }
-
-                speechRecognizer.cancel()
-            }
-
-            override fun onError(error: Int) {
-                Log.e("VOICE_DEBUG", "Speech error code: $error")
-                onListeningStop()
-                speechRecognizer.cancel()
-            }
-
-            override fun onEndOfSpeech() {
-                Log.d("VOICE_DEBUG", "Speech ended")
-            }
-
-            // 🔊 SAFE RMS HANDLING (THROTTLED, NO RECURSION)
-            override fun onRmsChanged(rmsdB: Float) {
-                val now = System.currentTimeMillis()
-                if (now - lastRmsUpdate > 100) { // ~10 fps
-                    lastRmsUpdate = now
-                    onRmsLevel?.invoke(rmsdB.coerceIn(0f, 10f))
-                }
-            }
-
-            override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onPartialResults(partialResults: Bundle?) {}
-            override fun onEvent(eventType: Int, params: Bundle?) {}
-        })
-    }
+    private var mediaRecorder: MediaRecorder? = null
+    private var audioFile: File? = null
+    private var isRecording = false
+    private val scope = CoroutineScope(Dispatchers.IO)
+    private var silenceJob: Job? = null
+    private val client = OkHttpClient.Builder().readTimeout(30, TimeUnit.SECONDS).build()
+    private val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
 
     fun startListening() {
+        if (isRecording) return
         Log.d("VOICE_DEBUG", "startListening called")
-        speechRecognizer.cancel()
 
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(
-                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-            )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale("hi", "IN"))
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+        // Play start tone
+        toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP)
+
+        audioFile = File(context.cacheDir, "audio_record.m4a")
+        
+        mediaRecorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            MediaRecorder(context)
+        } else {
+            @Suppress("DEPRECATION")
+            MediaRecorder()
+        }.apply {
+            setAudioSource(MediaRecorder.AudioSource.MIC)
+            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            setOutputFile(audioFile!!.absolutePath)
+            
+            try {
+                prepare()
+                start()
+                isRecording = true
+                onListeningStart()
+                startSilenceDetection()
+            } catch (e: Exception) {
+                Log.e("VOICE_DEBUG", "MediaRecorder prepare() failed", e)
+            }
         }
+    }
 
-        speechRecognizer.startListening(intent)
+    private fun startSilenceDetection() {
+        silenceJob?.cancel()
+        silenceJob = scope.launch {
+            var silenceDuration = 0L
+            val checkInterval = 200L
+            val threshold = 1500 // Adjust based on testing
+
+            while (isRecording) {
+                delay(checkInterval)
+                val amplitude = mediaRecorder?.maxAmplitude ?: 0
+                if (amplitude < threshold) {
+                    silenceDuration += checkInterval
+                } else {
+                    silenceDuration = 0
+                }
+
+                if (silenceDuration > 1500) { // 1.5 seconds of silence
+                    Log.d("VOICE_DEBUG", "Silence detected, stopping...")
+                    withContext(Dispatchers.Main) {
+                        stopListening()
+                    }
+                    break
+                }
+            }
+        }
+    }
+
+    fun stopListening() {
+        if (!isRecording) return
+        Log.d("VOICE_DEBUG", "stopListening called")
+        isRecording = false
+        silenceJob?.cancel()
+        onListeningStop()
+
+        // Play stop tone
+        toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP2)
+        
+        // Stop & release MediaRecorder
+        try {
+            mediaRecorder?.apply {
+                // Only stop if the recorder was started (prepare was called)
+                try {
+                    stop()
+                } catch (e: Exception) {
+                    Log.e("VOICE_DEBUG", "MediaRecorder stop() failed (expected if prepare failed)", e)
+                }
+                release()
+            }
+        } catch (e: Exception) {
+            Log.e("VOICE_DEBUG", "MediaRecorder release() failed", e)
+        } finally {
+            mediaRecorder = null
+        }
+        
+        // Transcribe audio
+        audioFile?.let { file ->
+            scope.launch {
+                try {
+                    val text = transcribeAudio(file)
+                    if (text.isNotBlank()) {
+                        onResult(text)
+                    }
+                } catch (e: Exception) {
+                    Log.e("VOICE_DEBUG", "Transcription failed", e)
+                    onResult("Abhi thoda issue hai. Kya aap dobara bol sakte hain?")
+                }
+            }
+        }
+    }
+
+    private fun transcribeAudio(file: File): String {
+        Log.d("VOICE_DEBUG", "Transcribing audio with Sarvam...")
+        val body = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", file.name,
+                file.asRequestBody("audio/mp4".toMediaType()))
+            .addFormDataPart("model", "saaras:v3")
+            .addFormDataPart("language_code", "hi-IN")
+            .addFormDataPart("mode", "codemix")
+            .build()
+
+        val request = Request.Builder()
+            .url("https://api.sarvam.ai/speech-to-text")
+            .addHeader("api-subscription-key", BuildConfig.SARVAM_API_KEY)
+            .post(body)
+            .build()
+
+        val response = client.newCall(request).execute()
+        val responseStr = response.body?.string() ?: ""
+        if (!response.isSuccessful) {
+            throw Exception("Sarvam STT Error: $responseStr")
+        }
+        return JSONObject(responseStr).getString("transcript")
     }
 
     fun destroy() {
-        speechRecognizer.destroy()
+        if (isRecording) {
+            stopListening()
+        }
     }
 }

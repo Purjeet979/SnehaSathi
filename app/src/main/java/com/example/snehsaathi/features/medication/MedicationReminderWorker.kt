@@ -1,32 +1,30 @@
 package com.example.snehsaathi.features.medication
 
 import android.content.Context
-import android.speech.tts.TextToSpeech
-import androidx.work.Worker
+import androidx.hilt.work.HiltWorker
+import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import java.util.Locale
+import com.example.snehsaathi.core.notifications.AppNotificationManager
+import com.example.snehsaathi.core.tts.OfflineTtsManager
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class MedicationReminderWorker(
-    context: Context,
-    params: WorkerParameters
-) : Worker(context, params), TextToSpeech.OnInitListener {
+@HiltWorker
+class MedicationReminderWorker @AssistedInject constructor(
+    @Assisted context: Context,
+    @Assisted params: WorkerParameters,
+    private val offlineTtsManager: OfflineTtsManager,
+    private val notificationManager: AppNotificationManager
+) : CoroutineWorker(context, params) {
 
-    private var tts: TextToSpeech? = null
-
-    override fun doWork(): Result {
-        tts = TextToSpeech(applicationContext, this)
+    override suspend fun doWork(): Result {
+        val medName = inputData.getString("med_name") ?: return Result.failure()
+        val message = "दवाई का समय हो गया है। $medName लेना मत भूलिए।"
+        
+        // Works offline — no network needed
+        offlineTtsManager.speak(message)
+        notificationManager.showMedicationNotification(medName)
+        
         return Result.success()
-    }
-
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.language = Locale("hi", "IN")
-            tts?.speak(
-                "Dadi, dawa lene ka samay ho gaya hai. Main yahin hoon.",
-                TextToSpeech.QUEUE_FLUSH,
-                null,
-                "MEDICATION"
-            )
-        }
     }
 }

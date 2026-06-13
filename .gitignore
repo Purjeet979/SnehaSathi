@@ -15,19 +15,19 @@
 local.properties
 gradle.properties
 .env
+**/.env
 *.env
 serviceAccountKey.json
 google-services.json
 node_modules/
-
-# Google / Firebase keys
-serviceAccountKey.json
-google-services.json
 **/serviceAccountKey.json
-
-# Node
-node_modules/
 **/node_modules/
 
-# Android local config
-local.properties
+# Documentation
+*.md
+
+# Security and API Keys
+apikey.properties
+secrets.properties
+*.keystore
+*.jks
