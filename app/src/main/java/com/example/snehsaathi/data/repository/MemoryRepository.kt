@@ -30,6 +30,10 @@ class MemoryRepository @Inject constructor(
             .map { it.first.content }
     }
 
+    suspend fun getRecentMemories(sinceTimestamp: Long): List<String> {
+        return memoryDao.getRecent(sinceTimestamp).map { it.content }
+    }
+
     private fun FloatArray.toByteArray(): ByteArray {
         val buffer = ByteBuffer.allocate(this.size * 4)
         buffer.asFloatBuffer().put(this)
