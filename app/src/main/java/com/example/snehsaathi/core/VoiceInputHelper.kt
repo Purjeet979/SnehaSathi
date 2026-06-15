@@ -126,12 +126,13 @@ class VoiceInputHelper(
             scope.launch {
                 try {
                     val text = transcribeAudio(file)
-                    if (text.isNotBlank()) {
+                    if (text.isNotBlank() && text.trim().lowercase() != "null") {
                         onResult(text)
                     }
                 } catch (e: Exception) {
                     Log.e("VOICE_DEBUG", "Transcription failed", e)
-                    onResult("Abhi thoda issue hai. Kya aap dobara bol sakte hain?")
+                    val errorMessage = if (languageCode == "en-IN") "There is a slight issue. Could you please speak again?" else "Abhi thoda issue hai. Kya aap dobara bol sakte hain?"
+                    onResult(errorMessage)
                 }
             }
         }
