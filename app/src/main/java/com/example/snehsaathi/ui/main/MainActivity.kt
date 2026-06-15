@@ -66,12 +66,17 @@ class MainActivity : ComponentActivity() {
 
     private val aiService: AIService by lazy {
         object : AIService {
-            override suspend fun reply(userText: String): String {
+            override suspend fun reply(userText: String, emotion: com.example.snehsaathi.core.Emotion): String {
+                if (com.example.snehsaathi.core.FeatureFlags.SCAM_SHIELD && com.example.snehsaathi.features.scamshield.ScamShield.isScam(userText)) {
+                    return com.example.snehsaathi.features.scamshield.ScamShield.warningMessage()
+                }
+
                 return try {
                     val profile = com.example.snehsaathi.core.UserProfileManager.getProfile(applicationContext)
                     val userName = profile?.name ?: "Dadi"
                     val relation = profile?.relation ?: "Dadi"
                     val language = profile?.language ?: "hi"
+                    val dialect = profile?.dialect ?: "Standard"
 
                     val relevantMemories = memoryRepository.retrieveRelevantMemories(userText)
                     val memoryContext = if (relevantMemories.isNotEmpty()) {
@@ -80,7 +85,18 @@ class MainActivity : ComponentActivity() {
                         ""
                     }
                     
-                    val systemPrompt = com.example.snehsaathi.core.Constants.getSystemPrompt(userName, relation, language) + "\n\n" + memoryContext
+                    val emotionInstruction = when(emotion) {
+                        com.example.snehsaathi.core.Emotion.SAD -> "The user is feeling sad. Comfort them, show deep empathy, and speak warmly."
+                        com.example.snehsaathi.core.Emotion.ANXIOUS -> "The user is feeling anxious. Be very calming, reassuring, and supportive."
+                        com.example.snehsaathi.core.Emotion.HAPPY -> "The user is feeling happy. Share their joy and be cheerful."
+                        com.example.snehsaathi.core.Emotion.NOSTALGIC -> "The user is feeling nostalgic. Encourage them to share more about their past memories."
+                        else -> ""
+                    }
+
+                    val nostalgia = com.example.snehsaathi.features.nostalgia.NostalgiaEngine.detect(userText)
+                    val nostalgiaInstruction = if (nostalgia != null) "The user just mentioned a nostalgic keyword. Ask them to share a specific story from their youth to keep the memory alive." else ""
+
+                    val systemPrompt = com.example.snehsaathi.core.Constants.getSystemPrompt(userName, relation, language, dialect) + "\n\n" + memoryContext + "\n\n" + emotionInstruction + "\n\n" + nostalgiaInstruction
 
                     val response = com.example.snehsaathi.core.SarvamClient.chat(
                         listOf(
@@ -132,6 +148,19 @@ class MainActivity : ComponentActivity() {
                 "SECURITY_REMINDER",
                 ExistingPeriodicWorkPolicy.KEEP,
                 securityWork
+            )
+        }
+
+        // Schedule Weekly Ghostwriter (independent of medication flag)
+        if (FeatureFlags.FAMILY_UPDATES) {
+            val ghostwriterWork = PeriodicWorkRequestBuilder<com.example.snehsaathi.features.family.GhostwriterWorker>(7, TimeUnit.DAYS)
+                .setInitialDelay(calculateInitialDelay(10, 0), TimeUnit.MILLISECONDS) // Next morning at 10 AM
+                .build()
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "GHOSTWRITER_UPDATE",
+                ExistingPeriodicWorkPolicy.KEEP,
+                ghostwriterWork
             )
         }
 
@@ -205,13 +234,16 @@ fun AppUI(
 
     val initialScreen = (context as? android.app.Activity)?.intent?.getStringExtra("target_screen")
         ?: if (userProfile == null || contacts.isEmpty()) "ONBOARDING" else "HOME"
+    val initialFromReminder = (context as? android.app.Activity)?.intent?.getBooleanExtra("from_reminder", false) ?: false
 
     // State for which screen is active
     var currentScreen by remember { mutableStateOf(initialScreen) }
     var hasGreeted by remember { mutableStateOf(false) }
+    var isFromReminder by remember { mutableStateOf(initialFromReminder) }
     
     val navigateTo: (String) -> Unit = { screen ->
         ttsManager.stop()
+        isFromReminder = false // Reset when navigating manually
         currentScreen = screen
     }
 
@@ -236,6 +268,7 @@ fun AppUI(
                 userName = userProfile?.name ?: "",
                 userRelation = userProfile?.relation ?: "Dadi",
                 userLanguage = userProfile?.language ?: "hi",
+                userDialect = userProfile?.dialect ?: "Standard",
                 ttsManager = ttsManager,
                 hasGreeted = hasGreeted,
                 onGreeted = { hasGreeted = true },
@@ -243,10 +276,15 @@ fun AppUI(
                     com.example.snehsaathi.core.UserProfileManager.updateLanguage(context, newLang)
                     userProfileState.value = com.example.snehsaathi.core.UserProfileManager.getProfile(context)
                 },
+                onDialectChange = { newDialect ->
+                    com.example.snehsaathi.core.UserProfileManager.updateDialect(context, newDialect)
+                    userProfileState.value = com.example.snehsaathi.core.UserProfileManager.getProfile(context)
+                },
                 onTalkClick = { navigateTo("CHAT") },
                 onMedsClick = { navigateTo("MEDS") },
                 onFamilyClick = { navigateTo("FAMILY") },
-                onSecurityClick = { navigateTo("SECURITY") }
+                onSecurityClick = { navigateTo("SECURITY") },
+                onNeighborhoodClick = { navigateTo("NEIGHBORHOOD") }
             )
             "CHAT" -> ChatScreen(
                 aiService = aiService,
@@ -257,11 +295,22 @@ fun AppUI(
             )
             "MEDS" -> MedsScreen(
                 ttsManager = ttsManager,
+                isFromReminder = isFromReminder,
+                userLanguage = userProfile?.language ?: "hi",
                 onBack = { navigateTo("HOME") }
             )
-            "FAMILY" -> FamilyScreen(onBack = { navigateTo("HOME") })
+            "NEIGHBORHOOD" -> NeighborhoodScreen(
+                ttsManager = ttsManager,
+                onBack = { navigateTo("HOME") }
+            )
+            "FAMILY" -> FamilyScreen(
+                userLanguage = userProfile?.language ?: "hi",
+                onBack = { navigateTo("HOME") }
+            )
             "SECURITY" -> SecurityScreen(
                 ttsManager = ttsManager,
+                isFromReminder = isFromReminder,
+                userLanguage = userProfile?.language ?: "hi",
                 onBack = { navigateTo("HOME") }
             )
         }
@@ -273,14 +322,17 @@ fun HomeScreen(
     userName: String,
     userRelation: String,
     userLanguage: String,
+    userDialect: String,
     ttsManager: com.example.snehsaathi.core.TextToSpeechManager,
     hasGreeted: Boolean,
     onGreeted: () -> Unit,
     onLanguageChange: (String) -> Unit,
+    onDialectChange: (String) -> Unit,
     onTalkClick: () -> Unit,
     onMedsClick: () -> Unit,
     onFamilyClick: () -> Unit,
-    onSecurityClick: () -> Unit
+    onSecurityClick: () -> Unit,
+    onNeighborhoodClick: () -> Unit
 ) {
     val greetingRelation = if (userRelation == "Dada") "दादा जी" else "दादी जी"
     val greetingText = if (userLanguage == "hi") {
@@ -289,9 +341,12 @@ fun HomeScreen(
         "Namaste $userName $greetingRelation, kaise hain? Aap kya karna chahenge?"
     }
     
+    var showDialectMenu by remember { mutableStateOf(false) }
+    val dialects = listOf("Standard", "Marathi", "Gujarati", "Punjabi", "Bihari", "Haryanvi")
+
     LaunchedEffect(hasGreeted) {
         if (!hasGreeted) {
-            ttsManager.speak(greetingText)
+            ttsManager.speak(greetingText, language = userLanguage)
             onGreeted()
         }
     }
@@ -303,18 +358,52 @@ fun HomeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Top Bar with Language Toggle
+        // Top Bar with Language and Dialect Toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Dialect Selector (Only for Hindi)
+            if (userLanguage == "hi") {
+                Box {
+                    Button(
+                        onClick = { showDialectMenu = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF81C784)),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = "Accent: $userDialect",
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showDialectMenu,
+                        onDismissRequest = { showDialectMenu = false }
+                    ) {
+                        dialects.forEach { dialect ->
+                            DropdownMenuItem(
+                                text = { Text(dialect) },
+                                onClick = {
+                                    onDialectChange(dialect)
+                                    showDialectMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            } else {
+                Spacer(modifier = Modifier.width(1.dp))
+            }
+
+            // Language Selector
             Button(
                 onClick = { onLanguageChange(if (userLanguage == "hi") "en" else "hi") },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD54F)),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
-                    text = if (userLanguage == "hi") "हिंदी (hi)" else "English (en)",
+                    text = if (userLanguage == "hi") "हिंदी" else "English",
                     color = Color.Black,
                     fontWeight = FontWeight.Bold
                 )
@@ -325,11 +414,11 @@ fun HomeScreen(
             Image(
                 painter = painterResource(id = R.drawable.sneh_saathi_logo),
                 contentDescription = "Sneh Saathi Logo",
-                modifier = Modifier.size(160.dp)
+                modifier = Modifier.size(110.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
             
-            val displayGreeting = if (userLanguage == "hi") "नमस्ते $userName $greetingRelation, कैसे हैं?" else "Namaste $userName $greetingRelation, kaise hain?"
+            val displayGreeting = if (userLanguage == "hi") "नमस्ते $userName $greetingRelation, कैसे हैं?" else "Namaste $userName $greetingRelation, how are you?"
             Text(
                 text = displayGreeting,
                 style = MaterialTheme.typography.titleMedium,
@@ -338,19 +427,19 @@ fun HomeScreen(
             )
         }
 
-        // 4-Button Grid
+        // Main Feature Buttons
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 HomeButton(
-                    text = "🎤 बात\nकरें",
+                    text = if (userLanguage == "hi") "🎤 बात\nकरें" else "🎤 Talk\nNow",
                     onClick = onTalkClick,
                     modifier = Modifier.weight(1f)
                 )
                 HomeButton(
-                    text = "💊 दवाई\nयाद दिलाएं",
+                    text = if (userLanguage == "hi") "💊 दवाई\nयाद दिलाएं" else "💊 Medicine\nReminder",
                     onClick = onMedsClick,
                     modifier = Modifier.weight(1f)
                 )
@@ -360,13 +449,23 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 HomeButton(
-                    text = "👨‍👩‍👧‍👦 परिवार\nसे जोड़ें",
+                    text = if (userLanguage == "hi") "👨‍👩‍👧‍👦 परिवार\nसे जोड़ें" else "👨‍👩‍👧‍👦 Connect\nFamily",
                     onClick = onFamilyClick,
                     modifier = Modifier.weight(1f)
                 )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 HomeButton(
-                    text = "🛡️ सुरक्षा\nजाँच",
+                    text = if (userLanguage == "hi") "🛡️ सुरक्षा\nजाँच" else "🛡️ Security\nCheck",
                     onClick = onSecurityClick,
+                    modifier = Modifier.weight(1f)
+                )
+                HomeButton(
+                    text = if (userLanguage == "hi") "🏘️ पड़ोसियों\nसे जुड़ें" else "🏘️ Connect\nNeighborhood",
+                    onClick = onNeighborhoodClick,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -384,14 +483,14 @@ fun HomeButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier)
         border = BorderStroke(2.dp, Color(0xFFD7CCC8)),
         shape = RoundedCornerShape(24.dp),
         modifier = modifier
-            .height(140.dp) // Minimum 100dp, made it 140dp for ease
+            .height(100.dp)
     ) {
         Text(
             text = text,
             color = Color(0xFF5D4037),
-            fontSize = 24.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
-            lineHeight = 34.sp,
+            lineHeight = 28.sp,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
