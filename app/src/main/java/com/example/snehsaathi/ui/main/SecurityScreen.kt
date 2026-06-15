@@ -16,27 +16,42 @@ import androidx.compose.ui.unit.sp
 import com.example.snehsaathi.core.TextToSpeechManager
 import com.example.snehsaathi.core.VoiceInputHelper
 
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
+import com.example.snehsaathi.features.security.SecurityReminderWorker
+import androidx.compose.material.icons.filled.Mic
+
 @Composable
-fun SecurityScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
+fun SecurityScreen(
+    ttsManager: TextToSpeechManager, 
+    isFromReminder: Boolean,
+    userLanguage: String,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     var voiceHelper by remember { mutableStateOf<VoiceInputHelper?>(null) }
     
-    var activeState by remember { mutableIntStateOf(0) }
+    var activeState by remember { mutableIntStateOf(1) }
     var doorsLocked by remember { mutableStateOf(false) }
     var gasOff by remember { mutableStateOf(false) }
     var windowsClosed by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
+    var isManualChecking by remember { mutableStateOf(isFromReminder) }
 
     DisposableEffect(Unit) {
         voiceHelper = VoiceInputHelper(
             context = context,
             onResult = { text ->
                 val lowerText = text.lowercase()
-                val isAffirmative = lowerText.contains("haan") || lowerText.contains("yes") || 
+                val isAffirmative = lowerText.contains("haan") || lowerText.contains("yes") || lowerText.contains("ya") || lowerText.contains("yep") || lowerText.contains("yeah") || lowerText.contains("yup") ||
                                   lowerText.contains("kardiya") || lowerText.contains("ji") || 
                                   lowerText.contains("ho") || lowerText.contains("bilkul") ||
                                   lowerText.contains("हाँ") || lowerText.contains("हा") || 
                                   lowerText.contains("जी") || lowerText.contains("कर")
+                                  
+                val isNegative = lowerText.contains("nahi") || lowerText.contains("no") || lowerText.contains("nope") || lowerText.contains("not") ||
+                                 lowerText.contains("नहीं") || lowerText.contains("ना") || lowerText.contains("baad mein")
                 
                 if (isAffirmative) {
                     when (activeState) {
@@ -44,31 +59,42 @@ fun SecurityScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
                         2 -> { gasOff = true; activeState = 3 }
                         3 -> { windowsClosed = true; activeState = 4 }
                     }
+                } else if (isNegative) {
+                    ttsManager.speakFast("Theek hai, main paanch minute baad yaad dilaungi.")
+                    
+                    val snoozeRequest = OneTimeWorkRequestBuilder<SecurityReminderWorker>()
+                        .setInitialDelay(5, TimeUnit.MINUTES)
+                        .build()
+                    WorkManager.getInstance(context).enqueue(snoozeRequest)
+                    
+                    voiceHelper?.stopListening()
+                    onBack()
                 } else {
                     // Try asking again if not affirmative
                     when (activeState) {
-                        1 -> ttsManager.speak("Kya aapne darwaza lock kar diya?", onComplete = { voiceHelper?.startListening() })
-                        2 -> ttsManager.speak("Kya gas band hai?", onComplete = { voiceHelper?.startListening() })
-                        3 -> ttsManager.speak("Kya khidkiyan band hain?", onComplete = { voiceHelper?.startListening() })
+                        1 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya aapne darwaza lock kar diya?" else "Have you locked the doors?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
+                        2 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya gas band hai?" else "Is the stove off?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
+                        3 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya khidkiyan band hain?" else "Are the windows closed?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
                     }
                 }
             },
             onListeningStart = { isListening = true },
             onListeningStop = { isListening = false }
         )
-        activeState = 1
 
         onDispose {
             voiceHelper?.destroy()
         }
     }
 
-    LaunchedEffect(activeState) {
-        when(activeState) {
-            1 -> ttsManager.speak("Kya aapne darwaza lock kar diya?", onComplete = { voiceHelper?.startListening() })
-            2 -> ttsManager.speak("Kya gas band hai?", onComplete = { voiceHelper?.startListening() })
-            3 -> ttsManager.speak("Kya khidkiyan band hain?", onComplete = { voiceHelper?.startListening() })
-            4 -> ttsManager.speak("Bahut badhiya, sab kuch surakshit hai.")
+    LaunchedEffect(activeState, isManualChecking) {
+        if (isManualChecking) {
+            when(activeState) {
+                1 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya aapne darwaza lock kar diya?" else "Have you locked the doors?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
+                2 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya gas band hai?" else "Is the stove off?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
+                3 -> ttsManager.speakFast(if (userLanguage == "hi") "Kya khidkiyan band hain?" else "Are the windows closed?", language = userLanguage, onComplete = { voiceHelper?.startListening() })
+                4 -> ttsManager.speakFast(if (userLanguage == "hi") "Bahut badhiya, sab kuch surakshit hai." else "Very good, everything is secure.", language = userLanguage)
+            }
         }
     }
 
@@ -88,20 +114,37 @@ fun SecurityScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
                 .height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))
         ) {
-            Text("वापस जाएँ (Back)", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(if (userLanguage == "hi") "वापस जाएँ" else "Back", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         }
 
         Text(
-            text = "सुरक्षा जाँच (Security)",
+            text = if (userLanguage == "hi") "सुरक्षा जाँच" else "Security Check",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF5D4037)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (!isManualChecking && activeState < 4) {
+            Button(
+                onClick = { isManualChecking = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .padding(vertical = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Filled.Mic, contentDescription = "Start Voice Check", modifier = Modifier.size(32.dp), tint = Color.White)
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(if (userLanguage == "hi") "आवाज़ से चेक करें" else "Start Voice Check", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         if (isListening) {
             Text(
-                text = "सुन रहे हैं... (Listening...)",
+                text = if (userLanguage == "hi") "सुन रहे हैं..." else "Listening...",
                 color = Color(0xFFD84315),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -109,61 +152,60 @@ fun SecurityScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
         }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                if (activeState == 4) {
-                    Icon(
-                        Icons.Filled.CheckCircle,
-                        contentDescription = "Secure",
-                        tint = Color(0xFF4CAF50),
-                        modifier = Modifier.size(80.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("सब कुछ सुरक्षित है!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
-                } else {
-                    Text("जाँच चल रही है...", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+        val items = listOf(
+            Pair(if (userLanguage == "hi") "दरवाज़ा (Doors)" else "Doors", doorsLocked),
+            Pair(if (userLanguage == "hi") "गैस (Stove)" else "Stove", gasOff),
+            Pair(if (userLanguage == "hi") "खिड़कियाँ (Windows)" else "Windows", windowsClosed)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            items.forEachIndexed { index, pair ->
+                val isActive = (index + 1) == activeState
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = if (isActive) Color(0xFFFFF3E0) else Color(0xFFE8F5E9)),
+                    elevation = CardDefaults.cardElevation(defaultElevation = if (isActive) 8.dp else 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = pair.first, 
+                            fontSize = if (isActive) 24.sp else 22.sp, 
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isActive) Color(0xFFE65100) else Color.Black
+                        )
+                        Checkbox(
+                            checked = pair.second,
+                            onCheckedChange = { isChecked ->
+                                if (index == 0) { doorsLocked = isChecked; if(isChecked && activeState == 1) { voiceHelper?.stopListening(); activeState = 2 } }
+                                if (index == 1) { gasOff = isChecked; if(isChecked && activeState == 2) { voiceHelper?.stopListening(); activeState = 3 } }
+                                if (index == 2) { windowsClosed = isChecked; if(isChecked && activeState == 3) { voiceHelper?.stopListening(); activeState = 4 } }
+                            },
+                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50))
+                        )
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                SecurityCheckItem(label = "Darwaza (Doors)", isChecked = doorsLocked, isActive = activeState == 1)
-                SecurityCheckItem(label = "Gas (Stove)", isChecked = gasOff, isActive = activeState == 2)
-                SecurityCheckItem(label = "Khidkiyan (Windows)", isChecked = windowsClosed, isActive = activeState == 3)
             }
         }
-    }
-}
-
-@Composable
-fun SecurityCheckItem(label: String, isChecked: Boolean, isActive: Boolean) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .let { if (isActive) it.padding(start = 16.dp) else it }
-    ) {
-        val color = if (isChecked) Color(0xFF4CAF50) else if (isActive) Color(0xFFF57C00) else Color.Gray
-        val icon = if (isChecked) Icons.Filled.CheckCircle else null
         
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
-        } else {
-            Box(modifier = Modifier.size(24.dp))
+        if (activeState == 4) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = "Secure",
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(80.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(if (userLanguage == "hi") "सब कुछ सुरक्षित है!" else "Everything is Secure!", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1565C0))
+            }
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = label, 
-            fontSize = if (isActive) 22.sp else 18.sp, 
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-            color = color
-        )
     }
 }
