@@ -7,4 +7,5 @@ object FeatureFlags {
     const val SCAM_SHIELD = true
     const val VOLUNTEERS = true
     const val MEDICATION = true
+    const val FAMILY_UPDATES = true
 }
