@@ -47,16 +47,21 @@ object SarvamClient {
             throw Exception("Sarvam API Error: $responseStr")
         }
         val json = JSONObject(responseStr)
-        return@withContext json.getJSONArray("choices")
+        val content = json.getJSONArray("choices")
             .getJSONObject(0)
             .getJSONObject("message")
-            .getString("content")
+            .optString("content", "")
+            
+        if (content.isEmpty() || content == "null") {
+            throw Exception("Sarvam API returned empty/null content")
+        }
+        return@withContext content
     }
 
-    suspend fun textToSpeech(text: String, pace: Double = 1.2): ByteArray = withContext(Dispatchers.IO) {
+    suspend fun textToSpeech(text: String, pace: Double = 1.2, languageCode: String = "hi-IN"): ByteArray = withContext(Dispatchers.IO) {
         val body = JSONObject().apply {
             put("inputs", JSONArray().put(text))
-            put("target_language_code", "hi-IN")
+            put("target_language_code", languageCode)
             put("speaker", "priya") // Changed to 'priya' for better quality
             put("pace", pace)
             put("model", "bulbul:v3")
