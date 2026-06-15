@@ -26,14 +26,15 @@ import com.example.snehsaathi.core.ContactsManager
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun SosButton() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val permissionsState = rememberMultiplePermissionsState(
         permissions = listOf(
             Manifest.permission.CALL_PHONE,
@@ -66,7 +67,7 @@ fun SosButton() {
                     onClick = {
                         showConfirm = false
                         if (permissionsState.allPermissionsGranted) {
-                            executeSos(context)
+                            executeSos(context, scope)
                         } else {
                             permissionsState.launchMultiplePermissionRequest()
                             Toast.makeText(context, "Permissions required for SOS", Toast.LENGTH_SHORT).show()
@@ -84,7 +85,7 @@ fun SosButton() {
     }
 }
 
-private fun executeSos(context: Context) {
+private fun executeSos(context: Context, scope: CoroutineScope) {
     Toast.makeText(context, "Sending SOS and calling 112...", Toast.LENGTH_LONG).show()
     
     var locationLink = "Location not available"
@@ -94,15 +95,15 @@ private fun executeSos(context: Context) {
             ?: locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
             
         if (location != null) {
-            locationLink = "https://maps.google.com/?q=\${location.latitude},\${location.longitude}"
+            locationLink = "https://maps.google.com/?q=${location.latitude},${location.longitude}"
         }
     }
 
     val contacts = ContactsManager.getContacts(context)
-    val message = "SOS! I need help immediately. Location: \$locationLink"
+    val message = "SOS! I need help immediately. Location: $locationLink"
 
     if (contacts.isNotEmpty()) {
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             val smsManager = context.getSystemService(SmsManager::class.java)
             for (contact in contacts) {
                 try {
