@@ -1,13 +1,13 @@
 # 🌸 Sneh Saathi — A Voice Companion for Elderly Care
 
 **Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users, especially those living alone.  
-It focuses on **emotional well-being, safety, memory, and family connection**, using simple Hinglish conversations instead of complex interfaces.
+It focuses on **emotional well-being, safety, memory, and family connection**, using simple voice interactions and regional dialects instead of complex interfaces.
 
 > *"Technology should not replace humans — it should bring them closer."*  
 
 ---
 
-## 🚀 Key Features
+## 🚀 Key Features & Hackathon Unique Selling Points (USPs)
 
 Sneh Saathi is designed from the ground up based on a deep analysis of Indian elderly pain points. It is an **offline-first, emotionally intelligent companion** with a highly accessible UI/UX.
 
@@ -16,24 +16,57 @@ Sneh Saathi is designed from the ground up based on a deep analysis of Indian el
   1. *One Screen, One Job* 
   2. *Every Error Must Self-Resolve* 
   3. *The App Must Never Feel Like Technology*
-- **4-Button Radial Home Screen:** We discarded complex tab bars for a hyper-legible 4-button layout (Talk, Meds, Family, Security) anchored by a massive SOS button.
-- **Voice-First Onboarding:** No emails, no OTPs, no typing. The app asks for the user's name, family members, and medications entirely through a 3-step voice conversation.
-- **Accessible Aesthetics:** Implemented a high-contrast, warm cream palette (`#FFF8F0`) with large, 22sp minimum typography and 1.5x line heights optimized for aging eyes.
-- **Breathing Mic Interaction:** A color-shifting, pulsing microphone button that acts as a visual anchor and speaks its current state (Listening, Thinking) aloud.
+- **Ultra-Simple Radial Home Screen:** We discarded complex tab bars for a hyper-legible, scroll-free button layout (Talk, Meds, Family, Security, Neighborhood) anchored by a massive SOS button.
+- **Voice-First Onboarding:** No emails, no passwords, no typing. The app asks for the user's name, family members, and medications entirely through a 3-step voice conversation.
+- **Accessible Aesthetics:** Implemented a high-contrast, warm cream palette with large typography and UI elements optimized for aging eyes.
 
-### 🌟 Standout Capabilities
-- **Rooh Pehchaan (Emotional Subtext Detection):** Analyzes speech energy, speaking rate, and pitch variance to detect if Dadi is sad, anxious, or confused, automatically shifting the AI's response tone to match.
-- **Parivaar Bridge (Silent Family Dashboard):** Generates a daily, non-invasive summary of Dadi's emotional state and interactions, designed to be piped directly to the family's WhatsApp.
-- **Bhajan & Kahaani (Goodnight Mode):** An offline content library that can proactively play familiar bhajans if Dadi is inactive around 9 PM.
-- **Aaj Ka Din (Morning Ritual):** A background worker that wakes up at 7:00 AM to proactively greet Dadi with "Jai Shri Krishna" and start a gentle morning conversation.
-- **Yaadein (Photo Memories):** A simplified, 1-tap camera interface designed for Dadi to take photos which the AI then weaves into beautiful Hinglish memory stories.
-- **Swaasthya Baatein (Conversational Health Log):** Silently extracts health complaints (e.g., "Mera ghutna dard kar raha hai") from casual conversation and logs them to a database to detect patterns over time.
+### 🌟 Unique Hackathon Features (The "Wow" Factor)
+- **Zero-Latency Voice Mode:** We eliminated API audio latency by hooking our AI responses directly into native on-device Android Text-to-Speech (TTS). The companion replies instantly, just like a real phone call.
+- **Regional Dialect Engine (Sarvam AI):** Sneh Saathi doesn't just speak Hindi. It can be toggled into **Marathi, Gujarati, Punjabi, Bihari, or Haryanvi** accents. The AI dynamically injects regional filler words (e.g., *Bhau, Kasa kay, Kem cho, Puttar, Babu*) to make the elderly feel truly at home.
+- **Weekly "Ghostwriter" (Parivaar Bridge):** A background worker (`GhostwriterWorker`) wakes up weekly, secretly reads the last 7 days of Dadi's conversations/memories, and uses AI to "ghostwrite" a highly emotional, non-robotic summary. It then prepares a 1-tap WhatsApp notification to instantly share this update with her family.
+- **Rooh Pehchaan (Emotional & Nostalgia Engine):** Analyzes the text for emotions (Sad, Anxious, Happy) and *Nostalgia*. If Dadi talks about the "old days", the AI automatically pivots to ask deeper questions about her youth, acting as an active listener and keeping her memories alive.
+- **Smart Voice Affirmations for Health & Security:** The app proactively asks "Have you taken your blood pressure pill?" or "Did you lock the door?". It intelligently understands affirmative/negative responses in English (*yeah, yep, nope*) and Hindi (*haan, le li, baad mein*).
 
 ---
 
 ## 🧩 Architecture & Technology Stack
 
-Sneh Saathi has been migrated to a robust, modern **Clean Architecture** (Data, Domain, Presentation) optimized for offline resilience and privacy.
+### 🔄 App Workflow Diagram
+```mermaid
+graph TD
+    %% User Input
+    User((Elderly User)) -->|Speaks| STT[VoiceInputHelper]
+    STT -->|Transcribed Text| AI[AIService Core]
+    
+    %% Processing Pipeline
+    AI -->|Check Input| Scam[Scam Shield Engine]
+    Scam -- Fraud Detected --> Warning[Loud Warning Trigger]
+    Warning --> TTS[Native TTS Engine]
+    
+    Scam -- Safe Input --> Emotion[Rooh Pehchaan \n Emotion & Nostalgia Engine]
+    Emotion --> Memory[Memory Repository]
+    
+    %% Local DB & Cloud
+    Memory <-->|Retrieve/Store Context| RoomDB[(Local SQLite / Room)]
+    Memory --> LLM[Sarvam AI Client]
+    
+    %% Response Generation
+    LLM -->|Generates Hinglish/Regional Response| TTS
+    TTS -->|Speaks Response| User
+    
+    %% Background Jobs
+    subgraph Background Workers
+        WorkMgr[WorkManager] --> MedsWorker[MedicationReminder]
+        WorkMgr --> SecWorker[SecurityCheckReminder]
+        WorkMgr --> GhostWorker[GhostwriterWorker]
+        
+        GhostWorker -->|Fetch 7 Days Memory| RoomDB
+        GhostWorker -->|Generate Summary| LLM
+        GhostWorker -->|Send to Family| WhatsApp[WhatsApp Intent]
+    end
+```
+
+Sneh Saathi uses a robust, modern **Clean Architecture** (Data, Domain, Presentation) optimized for offline resilience and privacy.
 
 ### 📁 Folder Structure
 ```text
@@ -43,18 +76,12 @@ app/src/main/java/com/example/snehsaathi/
 │   ├── local/             # Room DB, DAOs, Entities, DataStore
 │   └── repository/        # RAG implementation, TFLite Embeddings
 ├── features/              # Feature-packaged vertical slices
-│   ├── content/           # Bhajan & Kahaani offline logic
-│   ├── emotion/           # Voice Emotion Classifier (Rooh Pehchaan)
-│   ├── family/            # Parivaar Bridge Worker
+│   ├── family/            # GhostwriterWorker & Family Hub
 │   ├── medication/        # Medication Reminder Worker
-│   ├── morning/           # Morning Ritual Worker
-│   ├── onboarding/        # Voice-first Onboarding Flow
+│   ├── neighborhood/      # Padosi Sang & Geolocation 
 │   ├── scamshield/        # Scam Detector & Warning Dialog
-│   ├── sos/               # SOS Compose Buttons & Accompanist Permissions
-│   └── yaadein/           # UI for capturing Photo Memories
-├── presentation/          # ViewModels (e.g., ChatViewModel)
-└── ui/
-    ├── components/        # Reusable Compose (BreathingMic, ChatBubble)
+│   └── sos/               # SOS Compose Buttons
+├── ui/
     ├── main/              # MainActivity (4-Button Radial Home Screen)
     └── theme/             # High-contrast Colors, Typography, and Theme
 ```
@@ -66,29 +93,20 @@ app/src/main/java/com/example/snehsaathi/
 
 ### ⚙️ Core Systems (Offline-First)
 - **Room Database:** Local persistence layer caching `Memories`, `Conversations`, `Medications`, and `HealthLogs`.
-- **LiteRT (TensorFlow Lite):** Runs `embedding_model.tflite` directly on-device to generate vector embeddings for the local memory retrieval (RAG) pipeline.
-- **DataStore:** Replaced SharedPreferences for type-safe, reactive storage of Dadi's preferences (Voice Speed, Contacts).
-- **WorkManager:** Guaranteed background execution for `MedicationReminderWorker`, `MorningRitualWorker`, and `ParivaarBridgeWorker`—even after device reboots.
-- **ConnectivityObserver:** Uses Kotlin `Flow` to detect network drops and smoothly transition the app into a fully offline fallback mode.
+- **WorkManager:** Guaranteed background execution for `MedicationReminderWorker`, `SecurityReminderWorker`, and `GhostwriterWorker`—even after device reboots.
+- **DataStore:** Type-safe, reactive storage of Dadi's preferences (Voice Speed, Contacts, Dialect).
 
 ### 🤖 AI & NLP
-- **Sarvam AI (Cloud):** Highly-tuned LLM specialized in authentic Indian Hinglish context.
-- **Offline TTS Manager:** Android's native Text-to-Speech specifically initialized for `hi-IN` with optimized pitch and speech rates for a natural, elderly-friendly cadence.
-- **On-Device RAG (Retrieval-Augmented Generation):** Matches Dadi's current prompt against her `MemoryEntity` table using cosine similarity on the LiteRT embeddings.
-
----
-
-## 🛡️ Scam Shield Upgrade
-Financial scams are the #1 fear for elderly smartphone users in India. 
-- **Pattern & Context Scoring:** Upgraded from simple keyword matching to a weighted scoring system that analyzes the urgency and context of messages (e.g., "UPI", "Bank KYC", "Urgent").
-- **Visual & Audio Alarms:** Triggers a high-contrast soft-red `ScamWarningDialog` that immediately advises Dadi to hang up and contact her family.
+- **Sarvam AI (Cloud):** Highly-tuned LLM specialized in authentic Indian Hinglish context and regional dialects.
+- **Native TTS Manager:** Android's native Text-to-Speech initialized with optimized pitch, speech rates, and emotional tone adjustments.
+- **Scam Shield (Rule-based + AI):** Scans Dadi's inputs for keywords like "OTP", "Bank", "Police", "Lottery". If detected, it overrides the AI and throws a loud, immediate warning in her native language advising her to hang up.
 
 ---
 
 ## 🟢 Google Technology Usage (Mandatory Requirement)
-- **Firebase Firestore:** Backup layer for memories and family summaries.
+- **Firebase Firestore:** Backup layer for memories and family daily summaries.
 - **Firebase Background Services.**
-- **TensorFlow Lite (LiteRT):** Core to the on-device memory embedding engine.
+- **TensorFlow Lite (LiteRT):** (Prepared for on-device embedding generation and text classification).
 
 ---
 
