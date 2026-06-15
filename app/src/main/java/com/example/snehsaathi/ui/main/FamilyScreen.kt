@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.snehsaathi.core.ContactsManager
 
 @Composable
-fun FamilyScreen(onBack: () -> Unit) {
+fun FamilyScreen(userLanguage: String, onBack: () -> Unit) {
     val context = LocalContext.current
     val contacts = remember { ContactsManager.getContacts(context) }
 
@@ -40,11 +40,11 @@ fun FamilyScreen(onBack: () -> Unit) {
                 .height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))
         ) {
-            Text("वापस जाएँ (Back)", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(if (userLanguage == "hi") "वापस जाएँ" else "Back", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         }
 
         Text(
-            text = "परिवार (Family Contacts)",
+            text = if (userLanguage == "hi") "परिवार" else "Family Contacts",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF5D4037)
@@ -76,7 +76,7 @@ fun FamilyScreen(onBack: () -> Unit) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 IconButton(
                                     onClick = {
-                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:\${contact.number}"))
+                                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contact.number}"))
                                         context.startActivity(intent)
                                     },
                                     modifier = Modifier.background(Color(0xFF4CAF50), RoundedCornerShape(50))
@@ -85,7 +85,7 @@ fun FamilyScreen(onBack: () -> Unit) {
                                 }
                                 IconButton(
                                     onClick = {
-                                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:\${contact.number}"))
+                                        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${contact.number}"))
                                         context.startActivity(intent)
                                     },
                                     modifier = Modifier.background(Color(0xFF2196F3), RoundedCornerShape(50))
