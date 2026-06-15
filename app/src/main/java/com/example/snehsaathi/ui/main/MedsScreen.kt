@@ -18,11 +18,22 @@ import androidx.compose.ui.unit.sp
 import com.example.snehsaathi.core.TextToSpeechManager
 import com.example.snehsaathi.core.VoiceInputHelper
 
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
+import com.example.snehsaathi.features.medication.MedicationReminderWorker
+import androidx.compose.material.icons.filled.Mic
+
 data class Medication(val name: String, val time: String, var taken: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
+fun MedsScreen(
+    ttsManager: TextToSpeechManager, 
+    isFromReminder: Boolean,
+    userLanguage: String,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     var voiceHelper by remember { mutableStateOf<VoiceInputHelper?>(null) }
     
@@ -37,25 +48,41 @@ fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
     var activeIndex by remember { mutableIntStateOf(0) }
     var isListening by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var isManualChecking by remember { mutableStateOf(isFromReminder) }
 
     DisposableEffect(Unit) {
         voiceHelper = VoiceInputHelper(
             context = context,
             onResult = { text ->
                 val lowerText = text.lowercase()
-                val isAffirmative = lowerText.contains("haan") || lowerText.contains("yes") || 
+                val isAffirmative = lowerText.contains("haan") || lowerText.contains("yes") || lowerText.contains("ya") || lowerText.contains("yep") || lowerText.contains("yeah") || lowerText.contains("yup") ||
                                   lowerText.contains("le li") || lowerText.contains("khaa li") || lowerText.contains("ji") ||
                                   lowerText.contains("हाँ") || lowerText.contains("हा") || 
                                   lowerText.contains("जी") || lowerText.contains("ली") || lowerText.contains("खा")
+                                  
+                val isNegative = lowerText.contains("nahi") || lowerText.contains("no") || lowerText.contains("nope") || lowerText.contains("not") ||
+                                 lowerText.contains("नहीं") || lowerText.contains("ना") || lowerText.contains("baad mein")
                 
                 if (isAffirmative && activeIndex < meds.size) {
                     val currentMed = meds[activeIndex]
                     meds[activeIndex] = currentMed.copy(taken = true)
                     activeIndex++
+                } else if (isNegative) {
+                    val msg = if (userLanguage == "en") "Okay, I will remind you in five minutes." else "Theek hai, main paanch minute baad yaad dilaungi."
+                    ttsManager.speakFast(msg, language = userLanguage)
+                    
+                    val snoozeRequest = OneTimeWorkRequestBuilder<MedicationReminderWorker>()
+                        .setInitialDelay(5, TimeUnit.MINUTES)
+                        .build()
+                    WorkManager.getInstance(context).enqueue(snoozeRequest)
+                    
+                    voiceHelper?.stopListening()
+                    onBack()
                 } else if (activeIndex < meds.size) {
-                    // Try asking again if they didn't say yes or no clearly, or move on
+                    // Try asking again if they didn't say yes or no clearly
                     val currentMed = meds[activeIndex]
-                    ttsManager.speak("Kya aapne ${currentMed.name} le li hai?", onComplete = { voiceHelper?.startListening() })
+                    val msg = if (userLanguage == "en") "Have you taken ${currentMed.name}?" else "Kya aapne ${currentMed.name} le li hai?"
+                    ttsManager.speakFast(msg, language = userLanguage, onComplete = { voiceHelper?.startListening() })
                 }
             },
             onListeningStart = { isListening = true },
@@ -67,12 +94,16 @@ fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
         }
     }
 
-    LaunchedEffect(activeIndex, meds.size) {
-        if (activeIndex < meds.size) {
-            val currentMed = meds[activeIndex]
-            ttsManager.speak("Kya aapne ${currentMed.name} le li hai?", onComplete = { voiceHelper?.startListening() })
-        } else if (meds.isNotEmpty() && activeIndex == meds.size) {
-            ttsManager.speak("Bahut badhiya, aapne saari dawaiyan le li hain.")
+    LaunchedEffect(activeIndex, meds.size, isManualChecking) {
+        if (isManualChecking) {
+            if (activeIndex < meds.size) {
+                val currentMed = meds[activeIndex]
+                val msg = if (userLanguage == "en") "Have you taken ${currentMed.name}?" else "Kya aapne ${currentMed.name} le li hai?"
+                ttsManager.speakFast(msg, language = userLanguage, onComplete = { voiceHelper?.startListening() })
+            } else if (meds.isNotEmpty() && activeIndex == meds.size) {
+                val msg = if (userLanguage == "en") "Very good, you have taken all your medications." else "Bahut badhiya, aapne saari dawaiyan le li hain."
+                ttsManager.speakFast(msg, language = userLanguage)
+            }
         }
     }
 
@@ -97,7 +128,7 @@ fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
                 .height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))
         ) {
-            Text("वापस जाएँ (Back)", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(if (userLanguage == "hi") "वापस जाएँ" else "Back", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         }
 
             IconButton(
@@ -109,16 +140,33 @@ fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
         }
 
         Text(
-            text = "दवाइयाँ (Medications)",
+            text = if (userLanguage == "hi") "दवाइयाँ" else "Medications",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF5D4037)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (!isManualChecking && activeIndex < meds.size) {
+            Button(
+                onClick = { isManualChecking = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .padding(vertical = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Filled.Mic, contentDescription = "Start Voice Check", modifier = Modifier.size(32.dp), tint = Color.White)
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(if (userLanguage == "hi") "आवाज़ से चेक करें" else "Start Voice Check", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         if (isListening) {
             Text(
-                text = "सुन रहे हैं... (Listening...)",
+                text = if (userLanguage == "hi") "सुन रहे हैं..." else "Listening...",
                 color = Color(0xFFD84315),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -178,19 +226,19 @@ fun MedsScreen(ttsManager: TextToSpeechManager, onBack: () -> Unit) {
         
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("दवाई जोड़ें (Add Medication)") },
+            title = { Text(if (userLanguage == "hi") "दवाई जोड़ें" else "Add Medication") },
             text = {
                 Column {
                     OutlinedTextField(
                         value = newMedName,
                         onValueChange = { newMedName = it },
-                        label = { Text("दवाई का नाम (Medicine Name)") }
+                        label = { Text(if (userLanguage == "hi") "दवाई का नाम" else "Medicine Name") }
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newMedTime,
                         onValueChange = { newMedTime = it },
-                        label = { Text("समय (Time e.g., 08:00 AM)") }
+                        label = { Text(if (userLanguage == "hi") "समय (जैसे, 08:00 AM)" else "Time (e.g., 08:00 AM)") }
                     )
                 }
             },
