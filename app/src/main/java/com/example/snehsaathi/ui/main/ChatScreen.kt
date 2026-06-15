@@ -44,7 +44,7 @@ fun ChatScreen(
         val initialMessage = if (userLanguage == "hi") {
             "नमस्ते $greetingRelation! मैं आपका साथी हूँ। आज आप कैसे हैं?"
         } else {
-            "Namaste $greetingRelation! Main aapka saathi hoon. Aaj aap kaise hain?"
+            "Hello $greetingRelation! I am your companion. How are you doing today?"
         }
         messages.add(Message(initialMessage, false))
         ttsManager.speak(initialMessage)
@@ -57,10 +57,11 @@ fun ChatScreen(
                 messages.add(Message(userText, true))
                 isProcessing = true
                 scope.launch {
-                    val response = aiService.reply(userText)
+                    val emotion = com.example.snehsaathi.core.EmotionalEngine.detectEmotion(userText)
+                    val response = aiService.reply(userText, emotion)
                     messages.add(Message(response, false))
                     isProcessing = false
-                    ttsManager.speak(response)
+                    ttsManager.speak(response, emotion, userLanguage)
                 }
             },
             onListeningStart = { isListening = true },
@@ -88,7 +89,7 @@ fun ChatScreen(
                 .height(60.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))
         ) {
-            Text("वापस जाएँ (Back)", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+            Text(if (userLanguage == "hi") "वापस जाएँ" else "Back", fontSize = 20.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         }
 
         LazyColumn(
@@ -123,10 +124,10 @@ fun ChatScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (isProcessing) {
-                Text("सोच रहे हैं... (Thinking...)", color = Color.Gray, fontSize = 16.sp)
+                Text(if (userLanguage == "hi") "सोच रहे हैं..." else "Thinking...", color = Color.Gray, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
             } else if (isListening) {
-                Text("सुन रहे हैं... (Listening...)", color = Color(0xFFD84315), fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                Text(if (userLanguage == "hi") "सुन रहे हैं..." else "Listening...", color = Color(0xFFD84315), fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
             }
             
