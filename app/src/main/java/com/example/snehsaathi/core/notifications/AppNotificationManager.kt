@@ -37,6 +37,7 @@ class AppNotificationManager @Inject constructor(
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("target_screen", "MEDS")
+            putExtra("from_reminder", true)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, 100, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -59,6 +60,7 @@ class AppNotificationManager @Inject constructor(
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("target_screen", "SECURITY")
+            putExtra("from_reminder", true)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, 101, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
