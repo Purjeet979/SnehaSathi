@@ -37,7 +37,7 @@ object ScamDetector {
         // Hard block check
         hardBlockKeywords.forEach { keyword ->
             if (lower.contains(keyword)) {
-                return ScamResult(true, 1.0f, "Keyword: \$keyword")
+                return ScamResult(true, 1.0f, "Keyword: $keyword")
             }
         }
         
@@ -47,8 +47,8 @@ object ScamDetector {
         }
         
         return when {
-            score >= 40 -> ScamResult(true, score / 100f, "High risk score: \$score")
-            score >= 20 -> ScamResult(false, score / 100f, "Medium risk: \$score")  // warn but don't block
+            score >= 40 -> ScamResult(true, score / 100f, "High risk score: $score")
+            score >= 20 -> ScamResult(false, score / 100f, "Medium risk: $score")  // warn but don't block
             else -> ScamResult(false, 0f, "Safe")
         }
     }
