@@ -15,6 +15,9 @@ interface MemoryDao {
 
     @Query("SELECT * FROM memories")
     suspend fun getAll(): List<MemoryEntity>
+
+    @Query("SELECT * FROM memories WHERE createdAt >= :sinceTimestamp")
+    suspend fun getRecent(sinceTimestamp: Long): List<MemoryEntity>
 }
 
 @Dao
