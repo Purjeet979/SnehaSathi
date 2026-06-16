@@ -1,4 +1,4 @@
-=<div align="center">
+<div align="center">
 
 # 🌸 Sneh Saathi
 ### A Voice Companion for Elderly Care
