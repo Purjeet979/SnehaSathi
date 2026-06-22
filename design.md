@@ -4,14 +4,14 @@
 
 ### High-Level Architecture
 
-SNEH SAATHI follows a modular, layered architecture designed for scalability, maintainability, and cultural adaptation. The system is built on Android with cloud-based AI services and secure data management.
+SNEH SAATHI follows a modular, layered architecture designed for scalability, maintainability, and cultural adaptation. The system is built with Flutter for cross-platform support, utilizing cloud-based AI services and secure data management.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Presentation Layer                        │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
 │  │  Voice Interface │  │   UI Components │  │ Accessibility│ │
-│  │   (Compose UI)   │  │  (Jetpack)      │  │   Features   │ │
+│  │  (Flutter UI)    │  │  (Riverpod)     │  │   Features   │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                                 │
@@ -31,15 +31,15 @@ SNEH SAATHI follows a modular, layered architecture designed for scalability, ma
 │                      Data Layer                             │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
 │  │ Local Database  │  │ Firebase Store  │  │ Secure Cache │ │
-│  │    (Room)       │  │   (Firestore)   │  │              │ │
+│  │   (Drift)       │  │   (Firestore)   │  │              │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                                 │
 ┌─────────────────────────────────────────────────────────────┐
 │                   External Services                         │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────┐ │
-│  │   Groq LLM      │  │ Android Speech  │  │ Twilio API   │ │
-│  │   Service       │  │   Recognition   │  │ (WhatsApp)   │ │
+│  │   Sarvam AI     │  │ speech_to_text  │  │ WhatsApp     │ │
+│  │   Service       │  │   Plugin        │  │ Integration  │ │
 │  └─────────────────┘  └─────────────────┘  └──────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -53,7 +53,7 @@ SNEH SAATHI follows a modular, layered architecture designed for scalability, ma
 - **AccessibilityManager**: Ensures voice interface works for users with hearing difficulties
 
 #### 2. AI Service Layer
-- **GroqClient**: Manages LLM interactions with conversation context
+- **SarvamClient**: Manages LLM interactions with conversation context
 - **EmotionalEngine**: Analyzes emotional cues and adjusts response tone
 - **ConversationManager**: Maintains dialogue flow and context switching
 - **CulturalAdapter**: Ensures responses are culturally appropriate
@@ -61,7 +61,7 @@ SNEH SAATHI follows a modular, layered architecture designed for scalability, ma
 #### 3. Feature Management Layer
 - **FeatureManager**: Coordinates all app features and their interactions
 - **MedicationReminderWorker**: Background service for medication alerts
-- **SafetyShield**: Fraud detection and warning system
+- **Saavdhan (Safety Shield)**: Fraud detection and warning system
 - **MemoryManager**: Stores and retrieves conversational context
 - **CommunicationBridge**: Handles family messaging via WhatsApp
 
@@ -159,9 +159,9 @@ class TextToSpeechManager {
 
 ### 2. AI and Intelligence Components
 
-#### GroqClient
-```kotlin
-class GroqClient {
+#### SarvamClient
+```dart
+class SarvamClient {
     // Manages LLM API interactions
     // Handles conversation context and memory
     // Implements retry logic and error handling
@@ -191,9 +191,9 @@ class MedicationReminderWorker : Worker {
 }
 ```
 
-#### SafetyShield
-```kotlin
-class SafetyShield {
+#### Saavdhan (Scam Alert & Shield)
+```dart
+class ScamShieldEngine {
     // Fraud detection using keyword analysis
     // Risk assessment for user conversations
     // Escalation triggers for high-risk scenarios
@@ -213,16 +213,16 @@ class MemoryManager {
 
 ## API Integrations
 
-### 1. Groq LLM Integration
+### 1. Sarvam AI LLM Integration
 
-**Endpoint:** `https://api.groq.com/openai/v1/chat/completions`
+**Endpoint:** `https://api.sarvam.ai/chat/completions`
 
 **Authentication:** Bearer token with API key
 
 **Request Structure:**
 ```json
 {
-  "model": "mixtral-8x7b-32768",
+  "model": "sarvam-hinglish-v1",
   "messages": [
     {
       "role": "system",
@@ -294,20 +294,21 @@ service cloud.firestore {
 - Two-way messaging support for family responses
 - Message delivery status tracking
 
-### 4. Android Speech Recognition Integration
+### 4. Flutter Speech to Text Integration
 
 **Implementation:**
-```kotlin
-class SpeechRecognitionService {
-    private val speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
+```dart
+class VoiceInputHelper {
+    final SpeechToText _speechToText = SpeechToText();
     
-    fun startListening() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "hi-IN") // Hindi-India
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+    Future<void> startListening(Function(String) onResult) async {
+        bool available = await _speechToText.initialize();
+        if (available) {
+            _speechToText.listen(
+                onResult: (result) => onResult(result.recognizedWords),
+                localeId: 'hi-IN', // Hindi-India
+            );
         }
-        speechRecognizer.startListening(intent)
     }
 }
 ```
@@ -383,7 +384,7 @@ Phase 4: Dedicated infrastructure (1M+ users)
 ```
 
 **API Rate Limiting:**
-- Groq API: 100 requests/minute per user
+- Sarvam API: 100 requests/minute per user
 - Twilio: 1 message/hour for family updates
 - Firebase: Automatic scaling with cost monitoring
 - Graceful degradation during peak usage
@@ -430,7 +431,7 @@ Phase 4: Dedicated infrastructure (1M+ users)
 
 #### AI and Machine Learning
 ```
-Current: Groq LLM with basic prompting
+Current: Sarvam AI LLM with regional dialect prompting
 Phase 2: Fine-tuned models for elderly care
 Phase 3: Custom transformer models
 Phase 4: Multimodal AI (voice + visual + sensor data)

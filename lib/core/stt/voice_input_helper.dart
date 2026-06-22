@@ -1,0 +1,107 @@
+import 'dart:async';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+import '../network/sarvam_client.dart';
+
+class VoiceInputHelper {
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final SarvamClient _sarvamClient;
+  
+  bool _isRecording = false;
+  Timer? _silenceTimer;
+  String? _audioFilePath;
+
+  VoiceInputHelper(this._sarvamClient);
+
+  Future<void> startListening({
+    required Function() onStart,
+    required Function() onStop,
+    required Function(String) onResult,
+    String languageCode = 'hi-IN',
+  }) async {
+    if (_isRecording) return;
+
+    if (await _audioRecorder.hasPermission()) {
+      // Play start beep (mocked with simple print, add sound file in real app)
+      // _audioPlayer.play(AssetSource('sounds/beep_start.mp3'));
+      
+      final tempDir = await getTemporaryDirectory();
+      _audioFilePath = '${tempDir.path}/audio_record.m4a';
+
+      await _audioRecorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          sampleRate: 16000, // Lower sample rate for better compatibility with STT
+          bitRate: 128000,
+        ),
+        path: _audioFilePath!,
+      );
+
+      _isRecording = true;
+      onStart();
+
+      // Start silence detection loop
+      _startSilenceDetection(onStop, onResult, languageCode);
+    }
+  }
+
+  void _startSilenceDetection(Function() onStop, Function(String) onResult, String languageCode) {
+    int silenceTicks = 0;
+    
+    _silenceTimer?.cancel();
+    _silenceTimer = Timer.periodic(const Duration(milliseconds: 200), (timer) async {
+      if (!_isRecording) {
+        timer.cancel();
+        return;
+      }
+
+      final amplitude = await _audioRecorder.getAmplitude();
+      // Lower threshold to be more sensitive to quiet voices
+      if (amplitude.current < -40) {
+        silenceTicks++;
+      } else {
+        silenceTicks = 0;
+      }
+
+      // 6 seconds of silence (increased for elderly users)
+      if (silenceTicks > 30) {
+        timer.cancel();
+        stopListening(onStop, onResult, languageCode);
+      }
+    });
+  }
+
+  Future<void> stopListening(Function() onStop, Function(String) onResult, String languageCode) async {
+    if (!_isRecording) return;
+    _isRecording = false;
+    _silenceTimer?.cancel();
+
+    // Play stop beep
+    // _audioPlayer.play(AssetSource('sounds/beep_stop.mp3'));
+
+    final path = await _audioRecorder.stop();
+    onStop();
+
+    if (path != null) {
+      try {
+        final text = await _sarvamClient.speechToText(path, languageCode: languageCode);
+        if (text.isNotEmpty && text.toLowerCase() != 'null') {
+          onResult(text);
+        }
+      } catch (e) {
+        final errorMessage = (languageCode == 'en-IN')
+            ? "There is a slight issue. Could you please speak again?"
+            : "Abhi thoda issue hai. Kya aap dobara bol sakte hain?";
+        onResult(errorMessage);
+      }
+    }
+  }
+
+  void destroy() {
+    _silenceTimer?.cancel();
+    _audioRecorder.dispose();
+    _audioPlayer.dispose();
+  }
+}
