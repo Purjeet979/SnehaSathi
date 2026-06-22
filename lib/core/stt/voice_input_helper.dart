@@ -65,8 +65,8 @@ class VoiceInputHelper {
         silenceTicks = 0;
       }
 
-      // 6 seconds of silence (increased for elderly users)
-      if (silenceTicks > 30) {
+      // 2 seconds of silence for responsive auto-stop (10 ticks * 200ms)
+      if (silenceTicks > 10) {
         timer.cancel();
         stopListening(onStop, onResult, languageCode);
       }

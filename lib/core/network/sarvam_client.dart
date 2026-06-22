@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 class SarvamClient {
   static const String _baseUrl = 'https://api.sarvam.ai';
-  static const String _apiKey = 'YOUR_API_KEY_HERE'; // TODO: Retrieve from env/config
+  static const String _apiKey = 'sk_x7yxx5p6_V3Ea3WQVfYv5eLuECETAZw0w';
 
   final Dio _dio;
 
@@ -18,7 +18,14 @@ class SarvamClient {
     },
   ));
 
+  Future<void> _checkApiKey() async {
+    if (_apiKey == 'YOUR_API_KEY_HERE' || _apiKey.isEmpty) {
+      throw Exception('MISSING_API_KEY: Please add your Sarvam API Key in sarvam_client.dart');
+    }
+  }
+
   Future<String> chat(List<Map<String, String>> messages) async {
+    await _checkApiKey();
     try {
       final response = await _dio.post(
         '/v1/chat/completions',
@@ -40,6 +47,7 @@ class SarvamClient {
   }
 
   Future<Uint8List> textToSpeech(String text, {double pace = 1.2, String languageCode = 'hi-IN'}) async {
+    await _checkApiKey();
     try {
       final response = await _dio.post(
         '/text-to-speech',
@@ -64,6 +72,7 @@ class SarvamClient {
   }
 
   Future<String> translate(String text, String targetLang) async {
+    await _checkApiKey();
     try {
       final response = await _dio.post(
         '/translate',
@@ -82,6 +91,7 @@ class SarvamClient {
   }
 
   Future<String> speechToText(String filePath, {String languageCode = 'hi-IN'}) async {
+    await _checkApiKey();
     try {
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(filePath, filename: 'audio_record.m4a'),

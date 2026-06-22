@@ -17,6 +17,7 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final List<Message> _messages = [];
+  final ScrollController _scrollController = ScrollController();
   bool _isListening = false;
   bool _isProcessing = false;
 
@@ -24,6 +25,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _startInitialGreeting();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _startInitialGreeting() async {
@@ -35,6 +54,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() {
       _messages.add(Message(greeting, false));
     });
+    _scrollToBottom();
     
     final tts = ref.read(ttsManagerProvider);
     await tts.speakFast(greeting, language: lang);
@@ -48,7 +68,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await tts.stop();
 
     if (_isListening) {
-      // Logic to stop manually if needed
+      await voiceHelper.stopListening(
+        () => setState(() => _isListening = false),
+        _handleVoiceResult,
+        lang == 'hi' ? 'hi-IN' : 'en-IN',
+      );
     } else {
       await voiceHelper.startListening(
         onStart: () => setState(() => _isListening = true),
@@ -64,6 +88,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _messages.add(Message(userText, true));
       _isProcessing = true;
     });
+    _scrollToBottom();
 
     final aiService = ref.read(aiServiceProvider);
     final tts = ref.read(ttsManagerProvider);
@@ -75,30 +100,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await tts.stop();
       await scamShield.triggerWarning();
       setState(() => _isProcessing = false);
-      // Even after scam warning, restart listening if it's supposed to be continuous
-      Future.delayed(const Duration(seconds: 3), () => _toggleListening());
       return;
     }
 
     // 2. Normal Chat Flow
     try {
-      final response = await aiService.reply(userText);
+      final response = await aiService.reply(
+        userText,
+        languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN',
+      );
       setState(() {
         _messages.add(Message(response, false));
         _isProcessing = false;
       });
-      await tts.speakFast(response, language: lang, onComplete: () {
-        // Automatically start listening again after bot finishes speaking
-        if (mounted) {
-          _toggleListening();
-        }
-      });
+      _scrollToBottom();
+      await tts.speakFast(response, language: lang);
     } catch (e) {
       setState(() => _isProcessing = false);
-      // Restart listening even on error so they don't have to click
-      if (mounted) {
-        _toggleListening();
-      }
     }
   }
 
@@ -106,7 +124,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(languageProvider);
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: const Color(0xFFFFF8E1), // Match home screen background
       body: SafeArea(
         child: Column(
           children: [
@@ -127,6 +145,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             Expanded(
               child: ListView.builder(
+                controller: _scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _messages.length,
                 itemBuilder: (context, index) {
@@ -139,6 +158,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       decoration: BoxDecoration(
                         color: msg.isUser ? const Color(0xFFDCF8C6) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(msg.text, style: const TextStyle(fontSize: 18, color: Colors.black)),
                     ),

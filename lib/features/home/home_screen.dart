@@ -10,8 +10,30 @@ import '../family/family_screen.dart';
 import '../security/security_screen.dart';
 import '../scam_alert/scam_alert_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _mantraController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mantraController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _mantraController.dispose();
+    super.dispose();
+  }
 
   void _showSettingsDialog(BuildContext context, WidgetRef ref) {
     final userPrefs = ref.read(userPreferencesProvider);
@@ -44,8 +66,7 @@ class HomeScreen extends ConsumerWidget {
               await userPrefs.setDadiName(nameCtrl.text);
               await userPrefs.setEmergencyContact(phoneCtrl.text);
               if (ctx.mounted) Navigator.pop(ctx);
-              // Force rebuild
-              (context as Element).markNeedsBuild();
+              setState(() {});
             },
             child: const Text('Save'),
           ),
@@ -55,22 +76,22 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final selectedLang = ref.watch(languageProvider);
     final selectedDialect = ref.watch(dialectProvider);
     final userPrefs = ref.watch(userPreferencesProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: const Color(0xFFFFF8E1), // Warm cream background
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        toolbarHeight: 100, // Taller AppBar for better spacing
+        backgroundColor: const Color(0xFFFFF8E1), // Matches screen background
+        elevation: 0, // Removed elevation for a seamless look
+        toolbarHeight: 100,
         title: Row(
           children: [
             Image.asset(
               'assets/images/sneh_saathi_logo.png',
-              width: 70, // Significantly larger logo
+              width: 70,
               height: 70,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) =>
@@ -155,48 +176,71 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 30),
-            Text(
-              selectedLang == 'hi' ? 'नमस्ते, ${userPrefs.dadiName}!' : 'Namaste, ${userPrefs.dadiName}!',
-              style: Theme.of(context).textTheme.displayLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              selectedLang == 'hi' ? 'आज मैं आपकी क्या मदद कर सकता हूँ?' : 'How can I help you today?',
-              style: Theme.of(context).textTheme.bodyLarge,
-              textAlign: TextAlign.center,
-            ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double centerRadius = 80;
-                  final double outerRadius = constraints.maxWidth * 0.35;
-                  final Offset center = Offset(
-                    constraints.maxWidth / 2,
-                    constraints.maxHeight / 2 - 20,
-                  );
-
-                  return Stack(
-                    children: [
-                      // SOS Button (Center)
-                      Positioned(
-                        left: center.dx - centerRadius,
-                        top: center.dy - centerRadius,
-                        child: _buildSosButton(centerRadius * 2),
-                      ),
-                      // Radial Buttons
-                      ..._buildRadialButtons(center, outerRadius, context, ref),
-                    ],
+      body: Stack(
+        children: [
+          // Animated Mantra Background
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _mantraController,
+                builder: (context, child) {
+                  return CustomPaint(
+                    painter: MantraPainter(_mantraController.value),
                   );
                 },
               ),
             ),
-          ],
-        ),
+          ),
+          // Content Overlay
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 30),
+                Text(
+                  selectedLang == 'hi' ? 'नमस्ते, ${userPrefs.dadiName}!' : 'Namaste, ${userPrefs.dadiName}!',
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    backgroundColor: Colors.white.withValues(alpha: 0.5),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  selectedLang == 'hi' ? 'आज मैं आपकी क्या मदद कर सकता हूँ?' : 'How can I help you today?',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    backgroundColor: Colors.white.withValues(alpha: 0.5),
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double centerRadius = 80;
+                      final double outerRadius = 140; // Fixed radius for stability
+                      final Offset center = Offset(
+                        constraints.maxWidth / 2,
+                        constraints.maxHeight / 2 - 20,
+                      );
+
+                      return Stack(
+                        children: [
+                          // SOS Button (Center)
+                          Positioned(
+                            left: center.dx - centerRadius,
+                            top: center.dy - centerRadius,
+                            child: _buildSosButton(centerRadius * 2),
+                          ),
+                          // Radial Buttons
+                          ..._buildRadialButtons(center, outerRadius, context, ref),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -356,3 +400,61 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 }
+
+class MantraPainter extends CustomPainter {
+  final double progress;
+  MantraPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width == 0 || size.height == 0) return;
+    
+    final Offset center = Offset(size.width / 2, size.height / 2);
+    const String text = "ॐ नमः शिवाय    "; // Added more spaces for clear separation
+    
+    // Spiral Mantras
+    final int mantrasPerRing = 12; // Fixed number to create symmetrical "spokes"
+    
+    for (int i = 0; i < 8; i++) {
+      double radius = 80 + (i * 70) + (progress * 70);
+      double rotation = progress * (math.pi / 2);
+      
+      double opacity = 1.0 - (radius / (size.width * 1.1));
+      if (opacity < 0) opacity = 0;
+      if (opacity <= 0.01) continue;
+      
+      final textStyle = TextStyle(
+        color: Colors.orange.shade900.withValues(alpha: opacity * 0.12),
+        fontSize: 12 + (radius / 30), // Font grows with radius
+        fontWeight: FontWeight.bold,
+      );
+
+      final textSpan = TextSpan(text: text, style: textStyle);
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+      tp.layout();
+
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      // Main rotation for the whole ring
+      canvas.rotate(rotation);
+
+      for (int j = 0; j < mantrasPerRing; j++) {
+        // Each mantra is placed at a fixed angle to create the "spoke" effect
+        double angle = (j * 2 * math.pi / mantrasPerRing);
+        double x = radius * math.cos(angle);
+        double y = radius * math.sin(angle);
+
+        canvas.save();
+        canvas.translate(x, y);
+        canvas.rotate(angle + math.pi / 2); // Follow the curve
+        tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+        canvas.restore();
+      }
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant MantraPainter oldDelegate) => true;
+}
+

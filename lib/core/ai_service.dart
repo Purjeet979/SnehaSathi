@@ -6,9 +6,13 @@ class AIService {
 
   AIService(this._sarvamClient);
 
-  Future<String> reply(String userText, {Emotion emotion = Emotion.neutral}) async {
+  Future<String> reply(String userText, {String languageCode = 'hi-IN'}) async {
+    final systemPrompt = languageCode == 'hi-IN'
+        ? "You are Sneh Saathi, a warm and caring AI companion for elderly Indians. You must respond in a mix of Hindi and English (Hinglish) using Devanagari script for Hindi words. Be extremely kind, patient, and caring."
+        : "You are Sneh Saathi, a warm and caring AI companion for elderly Indians. You must respond strictly in clear, simple English. Be extremely kind, patient, and caring.";
+
     final messages = [
-      {"role": "system", "content": "You are Sneh Saathi, a warm and caring AI companion for elderly Indian users. Speak kindly and clearly."},
+      {"role": "system", "content": systemPrompt},
       {"role": "user", "content": userText}
     ];
     
