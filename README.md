@@ -5,10 +5,10 @@
 
 *"Technology should not replace humans — it should bring them closer."*
 
-![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Language](https://img.shields.io/badge/Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Language](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![AI](https://img.shields.io/badge/Sarvam_AI-Hinglish_LLM-FF6B6B?style=for-the-badge)
-![Architecture](https://img.shields.io/badge/Architecture-Clean_MVVM-00897B?style=for-the-badge)
+![Architecture](https://img.shields.io/badge/Architecture-Riverpod-00897B?style=for-the-badge)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
 
 </div>
@@ -37,13 +37,13 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 ### 📱 Interface & Accessibility
 
-- **Ultra-Simple Radial Home Screen** — Scroll-free layout with 5 core actions (Talk, Meds, Family, Security, Neighborhood) anchored by a massive SOS button
+- **Ultra-Simple Radial Home Screen** — Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan) anchored by an accessible interface
 - **Voice-First Onboarding** — No emails, no passwords, no typing. A 3-step voice conversation sets up name, family contacts, and medications
 - **Accessible Aesthetics** — High-contrast warm cream palette with large typography optimized for aging eyes (Material 3)
 
 ### 🌟 Unique "Wow Factor" Features
 
-- **⚡ Zero-Latency Voice Mode** — AI responses hook directly into native on-device Android TTS. Replies instantly — just like a real phone call
+- **⚡ Zero-Latency Voice Mode** — AI responses hook directly into native on-device TTS via `flutter_tts`. Replies instantly — just like a real phone call
 
 - **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*) so the elderly feel truly at home
 
@@ -51,7 +51,7 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 - **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — Detects emotions (Sad, Anxious, Happy) and nostalgia triggers. If Dadi mentions "the old days", the AI pivots to ask deeper questions about her youth — keeping her memories alive
 
-- **🛡️ Scam Shield Engine** — Scans inputs for keywords like *OTP, Bank, Police, Lottery*. If fraud is detected, overrides the AI with a loud, immediate warning in her native language
+- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space where users can paste SMS or use voice to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts, plus a live Scam Awareness Feed to keep the elderly informed about ongoing frauds.
 
 - **💊 Smart Health & Security Affirmations** — Proactively asks "Have you taken your blood pressure pill?" and understands responses in both English (*yeah, nope*) and Hindi (*haan, baad mein*)
 
@@ -61,30 +61,30 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 ```mermaid
 graph TD
-    User((Elderly User)) -->|Speaks| STT[VoiceInputHelper]
+    User((Elderly User)) -->|Speaks| STT[speech_to_text]
     STT -->|Transcribed Text| AI[AIService Core]
 
     AI -->|Check Input| Scam[Scam Shield Engine]
     Scam -- Fraud Detected --> Warning[Loud Warning Trigger]
-    Warning --> TTS[Native TTS Engine]
+    Warning --> TTS[flutter_tts]
 
     Scam -- Safe Input --> Emotion[Rooh Pehchaan\nEmotion & Nostalgia Engine]
     Emotion --> Memory[Memory Repository]
 
-    Memory <-->|Retrieve/Store Context| RoomDB[(Local SQLite / Room)]
+    Memory <-->|Retrieve/Store Context| DriftDB[(Drift SQLite)]
     Memory --> LLM[Sarvam AI Client]
 
     LLM -->|Generates Hinglish/Regional Response| TTS
     TTS -->|Speaks Response| User
 
     subgraph Background Workers
-        WorkMgr[WorkManager] --> MedsWorker[MedicationReminder]
+        WorkMgr[workmanager] --> MedsWorker[MedicationReminder]
         WorkMgr --> SecWorker[SecurityCheckReminder]
         WorkMgr --> GhostWorker[GhostwriterWorker]
 
-        GhostWorker -->|Fetch 7 Days Memory| RoomDB
+        GhostWorker -->|Fetch 7 Days Memory| DriftDB
         GhostWorker -->|Generate Summary| LLM
-        GhostWorker -->|Send to Family| WhatsApp[WhatsApp Intent]
+        GhostWorker -->|Send to Family| WhatsApp[url_launcher]
     end
 ```
 
@@ -92,34 +92,34 @@ graph TD
 
 ## 🧩 Architecture & Tech Stack
 
-Sneh Saathi uses **Clean Architecture** (Data → Domain → Presentation) optimized for offline resilience and privacy.
+Sneh Saathi uses **Clean Architecture** with **Riverpod** optimized for cross-platform offline resilience.
 
 ### 📱 Frontend
 | Technology | Usage |
 |---|---|
-| Kotlin & Jetpack Compose | Declarative UI with Material 3 |
-| Accompanist Permissions | Localized Audio, Camera, Call/SMS permissions |
-| Hilt | Dependency Injection |
+| Flutter & Dart | Declarative UI for Android/iOS |
+| Riverpod | State Management & Dependency Injection |
+| Flutter Plugins | Localized Audio, Call/SMS permissions |
 
 ### ⚙️ Core Systems (Offline-First)
 | Technology | Usage |
 |---|---|
-| Room Database | Local persistence — Memories, Conversations, Medications, Health Logs |
+| Drift Database | Local persistence — Memories, Conversations, Medications |
 | WorkManager | Guaranteed background execution, survives device reboots |
-| DataStore | Voice Speed, Contacts, Dialect preferences |
+| SharedPreferences | Voice Speed, Contacts, Dialect preferences |
 
 ### 🤖 AI & NLP
 | Technology | Usage |
 |---|---|
 | Sarvam AI | Hinglish + regional dialect LLM |
-| Native TTS Manager | On-device speech with pitch, rate & emotion tuning |
-| Scam Shield | Rule-based + AI fraud detection with override system |
+| flutter_tts | On-device speech with pitch, rate & emotion tuning |
+| Saavdhan (Scam Shield) | Hybrid Rule-based + AI fraud detection with Green/Amber/Red confidence system |
 
 ### 🟢 Google Technologies
 | Technology | Usage |
 |---|---|
 | Firebase Firestore | Cloud backup for memories & family summaries |
-| Firebase Background Services | Cloud-synced family connectivity |
+| Firebase Storage | Cloud-synced media and audio |
 | TensorFlow Lite (LiteRT) | On-device embeddings & text classification (prepared) |
 
 ---
@@ -127,20 +127,20 @@ Sneh Saathi uses **Clean Architecture** (Data → Domain → Presentation) optim
 ## 📁 Folder Structure
 
 ```
-app/src/main/java/com/example/snehsaathi/
+lib/
 ├── core/                  # Network observers, TTS, clients, global helpers
 ├── data/
-│   ├── local/             # Room DB, DAOs, Entities, DataStore
-│   └── repository/        # RAG implementation, TFLite Embeddings
+│   ├── local/             # Drift DB, DAOs, Entities, SharedPreferences
+│   └── repository/        # RAG implementation, Repositories
 ├── features/
+│   ├── chat/              # Chat interface
 │   ├── family/            # GhostwriterWorker & Family Hub
+│   ├── home/              # Main Radial Home Screen
 │   ├── medication/        # Medication Reminder Worker
-│   ├── neighborhood/      # Padosi Sang & Geolocation
-│   ├── scamshield/        # Scam Detector & Warning Dialog
-│   └── sos/               # SOS Compose Buttons
-└── ui/
-    ├── main/              # MainActivity — Radial Home Screen
-    └── theme/             # High-contrast Colors, Typography, Theme
+│   ├── scam_alert/        # Scam Detection UI
+│   ├── scamshield/        # Scam Detector Logic
+│   └── security/          # Security Check Worker
+└── main.dart              # Entry point
 ```
 
 ---
