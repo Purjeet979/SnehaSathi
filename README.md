@@ -47,7 +47,7 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 - **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*) so the elderly feel truly at home
 
-- **📝 Weekly Ghostwriter — Parivaar Bridge** — A background worker secretly reads 7 days of Dadi's conversations and uses AI to ghostwrite a highly emotional, human-like family summary — then prepares a 1-tap WhatsApp message
+- **📝 Parivaar Bridge (Weekly Ghostwriter)** — **Zero-Cost WhatsApp Automation!** A fully automated GitHub Actions workflow runs every Sunday, fetches 7 days of Dadi's conversations, uses **Sarvam AI** to generate a heartwarming Hinglish summary, and automatically sends it to family members via the **WhatsApp Cloud API**. Completely serverless, hands-free, and runs on free tiers!
 
 - **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — Detects emotions (Sad, Anxious, Happy) and nostalgia triggers. If Dadi mentions "the old days", the AI pivots to ask deeper questions about her youth — keeping her memories alive
 
