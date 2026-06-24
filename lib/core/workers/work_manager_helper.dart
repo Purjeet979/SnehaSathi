@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../network/sarvam_client.dart';
 import '../../data/local/database.dart';
-import '../../data/repository/memory_repository.dart';
-import '../../data/repository/local_embedding_engine.dart';
 
 const String ghostwriterTask = "ghostwriter_task";
 const String medicationTask = "medication_task";
@@ -58,6 +57,17 @@ Future<void> _handleGhostwriterTask() async {
       await launchUrl(whatsappUrl);
     }
     
+    // Log to Firebase
+    try {
+      await FirebaseFirestore.instance.collection('weekly_summaries').add({
+        'summary': summary,
+        'generatedAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint("Logged weekly summary to Firebase successfully.");
+    } catch (firebaseErr) {
+      debugPrint("Failed to log summary to Firebase: $firebaseErr");
+    }
+
     await db.close();
   } catch (e) {
     debugPrint("Ghostwriter Error: $e");

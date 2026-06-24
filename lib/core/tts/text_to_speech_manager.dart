@@ -20,6 +20,10 @@ class TextToSpeechManager {
 
   Future<void> speakFast(String text, {String language = "hi", Emotion emotion = Emotion.neutral, Function? onComplete}) async {
     if (!_isReady) return;
+    if (text.trim().isEmpty) {
+      onComplete?.call();
+      return;
+    }
 
     final targetLocale = (language == "en") ? "en-IN" : "hi-IN";
     await _flutterTts.setLanguage(targetLocale);
@@ -53,6 +57,15 @@ class TextToSpeechManager {
     });
 
     await _flutterTts.speak(text);
+  }
+
+  Future<void> speakInChunks(String fullResponse, {String language = "hi"}) async {
+    final sentences = fullResponse.split(RegExp(r'(?<=[।.!?])\s+'));
+    for (final sentence in sentences) {
+      final trimmed = sentence.trim();
+      if (trimmed.isEmpty) continue;
+      await speakFast(trimmed, language: language);
+    }
   }
 
   Future<void> stop() async {

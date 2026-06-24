@@ -1,0 +1,29 @@
+{
+  "high_risk": [
+    "otp",
+    "kyc",
+    "account block",
+    "account suspend",
+    "lottery",
+    "prize jeeta",
+    "upi pin",
+    "cvv",
+    "aadhar link",
+    "turant",
+    "abhi karo",
+    "bank se bol rahe",
+    "refund ke liye",
+    "insurance claim"
+  ],
+  "medium_risk": [
+    "click here",
+    "link pe jao",
+    "verify karo",
+    "24 ghante",
+    "police case",
+    "arrest",
+    "court notice",
+    "gift card",
+    "recharge karo"
+  ]
+}

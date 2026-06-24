@@ -36,7 +36,10 @@ final aiServiceProvider = Provider<AIService>((ref) {
 });
 
 final scamShieldProvider = Provider<ScamShieldEngine>((ref) {
-  return ScamShieldEngine(ref.watch(ttsManagerProvider));
+  return ScamShieldEngine(
+    ref.watch(ttsManagerProvider),
+    ref.watch(sarvamClientProvider),
+  );
 });
 
 final voiceInputProvider = Provider<VoiceInputHelper>((ref) {

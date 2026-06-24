@@ -265,14 +265,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.7"
-  cupertino_icons:
-    dependency: "direct main"
-    description:
-      name: cupertino_icons
-      sha256: "41e005c33bd814be4d3096aff55b1908d419fde52ca656c8c47719ec745873cd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.9"
   dart_style:
     dependency: transitive
     description:
@@ -346,7 +338,7 @@ packages:
     source: hosted
     version: "7.0.1"
   firebase_core:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: firebase_core
       sha256: d2625088d8f8836a7a74a7eb94a5372d70ad88382602ba2dcc02805c294d0d16
@@ -369,30 +361,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.9.0"
-  firebase_storage:
-    dependency: "direct main"
-    description:
-      name: firebase_storage
-      sha256: f732bbcd82d21cfbe49b6fe5f4c50334f5f3660a151f004f58da388f8e39e6d3
-      url: "https://pub.dev"
-    source: hosted
-    version: "13.4.3"
-  firebase_storage_platform_interface:
-    dependency: transitive
-    description:
-      name: firebase_storage_platform_interface
-      sha256: "2515a8d16be44fffb3782669543804a651e73f637bb668db77d76a5bd38c396f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.0.3"
-  firebase_storage_web:
-    dependency: transitive
-    description:
-      name: firebase_storage_web
-      sha256: "05813d665afa2c2bafaba62c97dc1b510886b1b4fcec49bf05934bd78795c6e7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.11.9"
   fixnum:
     dependency: transitive
     description:
@@ -997,30 +965,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.2"
-  speech_to_text:
-    dependency: "direct main"
-    description:
-      name: speech_to_text
-      sha256: "75587f7400f485fdf166beacd471549d98fe5d58e634f708916bb65dec05d6a4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.4.0"
-  speech_to_text_platform_interface:
-    dependency: transitive
-    description:
-      name: speech_to_text_platform_interface
-      sha256: a7e16e02853853ed7534ac2bde9a1c4f39c8879970a7974ac6ff832d4bdaa4b0
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.4.0"
-  speech_to_text_windows:
-    dependency: transitive
-    description:
-      name: speech_to_text_windows
-      sha256: "2d1d10565b23262386b453b33656299608dc7a66784453735d6c1318f13f44d7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.1"
   sqlite3:
     dependency: "direct main"
     description:

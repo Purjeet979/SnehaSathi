@@ -183,15 +183,22 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
                 items: ['Subah', 'Dopahar', 'Shaam', 'Raat'].map((t) {
                   String label = t;
                   if (lang == 'en') {
-                    if (t == 'Subah') label = 'Morning';
-                    else if (t == 'Dopahar') label = 'Afternoon';
-                    else if (t == 'Shaam') label = 'Evening';
-                    else if (t == 'Raat') label = 'Night';
+                    if (t == 'Subah') {
+                      label = 'Morning';
+                    } else if (t == 'Dopahar') {
+                      label = 'Afternoon';
+                    } else if (t == 'Shaam') {
+                      label = 'Evening';
+                    } else if (t == 'Raat') {
+                      label = 'Night';
+                    }
                   }
                   return DropdownMenuItem(value: t, child: Text(label));
                 }).toList(),
                 onChanged: (val) {
-                  if (val != null) setDialogState(() => selectedTime = val);
+                  if (val != null) {
+                    setDialogState(() => selectedTime = val);
+                  }
                 },
               ),
             ],
@@ -223,10 +230,15 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     
     String displayTitle = title;
     if (lang == 'en') {
-      if (title == 'Subah') displayTitle = 'Morning';
-      else if (title == 'Dopahar') displayTitle = 'Afternoon';
-      else if (title == 'Shaam') displayTitle = 'Evening';
-      else if (title == 'Raat') displayTitle = 'Night';
+      if (title == 'Subah') {
+        displayTitle = 'Morning';
+      } else if (title == 'Dopahar') {
+        displayTitle = 'Afternoon';
+      } else if (title == 'Shaam') {
+        displayTitle = 'Evening';
+      } else if (title == 'Raat') {
+        displayTitle = 'Night';
+      }
     }
     
     return Column(

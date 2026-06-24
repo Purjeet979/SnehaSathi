@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../data/local/database.dart';
+import '../scamshield/scam_shield_engine.dart';
+import 'providers/conversation_state.dart';
 
 class Message {
   final String text;
@@ -94,29 +98,91 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final tts = ref.read(ttsManagerProvider);
     final scamShield = ref.read(scamShieldProvider);
     final lang = ref.read(languageProvider);
+    final dialect = ref.read(dialectProvider);
+    final db = ref.read(databaseProvider);
+
+    db.addConversation(ConversationsCompanion(
+      role: const drift.Value('user'),
+      content: drift.Value(userText),
+      timestamp: drift.Value(DateTime.now().millisecondsSinceEpoch),
+    ));
 
     // 1. Real-time Scam Check
-    if (scamShield.scanInput(userText)) {
+    final scamResult = await scamShield.scanInput(userText);
+    if (scamResult.level == ScamResultLevel.red) {
       await tts.stop();
       await scamShield.triggerWarning();
       setState(() => _isProcessing = false);
       return;
     }
 
-    // 2. Normal Chat Flow
+    // 2. Dawai Saathi - Smart Health Affirmations
+    bool isMedPrompt = false;
+    if (_messages.length >= 2) {
+      final lastAiMessage = _messages[_messages.length - 2];
+      if (!lastAiMessage.isUser) {
+        final text = lastAiMessage.text.toLowerCase();
+        if (text.contains("pill") || text.contains("dawai") || text.contains("medicine")) {
+          isMedPrompt = true;
+        }
+      }
+    }
+
+    if (isMedPrompt) {
+      final medState = await aiService.classifyMedicationResponse(userText);
+      if (medState == 'deferred') {
+        debugPrint("Dawai deferred: Scheduling local notification for 45 mins later");
+        // Example: flutterLocalNotificationsPlugin.zonedSchedule(...)
+      } else if (medState == 'refused') {
+        debugPrint("Dawai refused: Quietly logging to family dashboard");
+      }
+    }
+
+    // 3. Rooh Pehchaan - Emotion Classification
+    aiService.classifyEmotion(userText).then((emotionData) {
+      ref.read(conversationStateProvider.notifier).addEmotion(emotionData['emotion'] ?? 'neutral');
+    });
+
+    final convState = ref.read(conversationStateProvider);
+    String? pivotInstruction;
+    if (convState.shouldPivot) {
+      pivotInstruction = "Dadi ne lagatar udaas ya anxious baat ki hai. Gently unke in life memories ke baare mein poochho: ${ref.read(lifeMemoriesProvider)}";
+      ref.read(conversationStateProvider.notifier).clearPivot();
+    }
+
+    // 4. Normal Chat Flow
     try {
       final response = await aiService.reply(
         userText,
         languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN',
+        dialect: dialect,
+        pivotInstruction: pivotInstruction,
       );
       setState(() {
         _messages.add(Message(response, false));
         _isProcessing = false;
       });
       _scrollToBottom();
-      await tts.speakFast(response, language: lang);
+
+      db.addConversation(ConversationsCompanion(
+        role: const drift.Value('assistant'),
+        content: drift.Value(response),
+        timestamp: drift.Value(DateTime.now().millisecondsSinceEpoch),
+      ));
+
+      // Zero-Latency Voice Mode (Simulated via chunking)
+      final sentences = response.split(RegExp(r'(?<=[।.!?])\s+'));
+      for (final sentence in sentences) {
+        if (sentence.trim().isNotEmpty) {
+          await tts.speakFast(sentence, language: lang);
+        }
+      }
     } catch (e) {
-      setState(() => _isProcessing = false);
+      setState(() {
+        _isProcessing = false;
+        _messages.add(Message("माफ़ करना, मुझे समझने में थोड़ी दिक्कत हो रही है। ($e)", false));
+      });
+      _scrollToBottom();
     }
   }
 

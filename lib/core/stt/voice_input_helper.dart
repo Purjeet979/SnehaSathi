@@ -23,10 +23,13 @@ class VoiceInputHelper {
   }) async {
     if (_isRecording) return;
 
-    if (await _audioRecorder.hasPermission()) {
-      // Play start beep (mocked with simple print, add sound file in real app)
-      // _audioPlayer.play(AssetSource('sounds/beep_start.mp3'));
-      
+    try {
+      final hasPermission = await _audioRecorder.hasPermission();
+      if (!hasPermission) {
+        onResult(_retryPrompt(languageCode));
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
       _audioFilePath = '${tempDir.path}/audio_record.m4a';
 
@@ -44,6 +47,10 @@ class VoiceInputHelper {
 
       // Start silence detection loop
       _startSilenceDetection(onStop, onResult, languageCode);
+    } catch (e) {
+      _isRecording = false;
+      onStop();
+      onResult(_retryPrompt(languageCode));
     }
   }
 
@@ -57,12 +64,16 @@ class VoiceInputHelper {
         return;
       }
 
-      final amplitude = await _audioRecorder.getAmplitude();
-      // Lower threshold to be more sensitive to quiet voices
-      if (amplitude.current < -40) {
+      try {
+        final amplitude = await _audioRecorder.getAmplitude();
+        // Lower threshold to be more sensitive to quiet voices
+        if (amplitude.current < -40) {
+          silenceTicks++;
+        } else {
+          silenceTicks = 0;
+        }
+      } catch (e) {
         silenceTicks++;
-      } else {
-        silenceTicks = 0;
       }
 
       // 2 seconds of silence for responsive auto-stop (10 ticks * 200ms)
@@ -89,14 +100,21 @@ class VoiceInputHelper {
         final text = await _sarvamClient.speechToText(path, languageCode: languageCode);
         if (text.isNotEmpty && text.toLowerCase() != 'null') {
           onResult(text);
+        } else {
+          onResult(_retryPrompt(languageCode));
         }
       } catch (e) {
-        final errorMessage = (languageCode == 'en-IN')
-            ? "There is a slight issue. Could you please speak again?"
-            : "Abhi thoda issue hai. Kya aap dobara bol sakte hain?";
-        onResult(errorMessage);
+        onResult(_retryPrompt(languageCode));
       }
+    } else {
+      onResult(_retryPrompt(languageCode));
     }
+  }
+
+  String _retryPrompt(String languageCode) {
+    return (languageCode == 'en-IN')
+        ? "There is a slight issue. Could you please speak again?"
+        : "Phir se boliye. Awaaz saaf nahi aayi.";
   }
 
   void destroy() {

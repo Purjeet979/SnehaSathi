@@ -6,7 +6,7 @@ class FamilyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('Parivaar Bridge'),
         backgroundColor: const Color(0xFFD84315),

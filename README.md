@@ -43,17 +43,17 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 ### 🌟 Unique "Wow Factor" Features
 
-- **⚡ Zero-Latency Voice Mode** — AI responses hook directly into native on-device TTS via `flutter_tts`. Replies instantly — just like a real phone call
+- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, rather than waiting for the full response. This dramatically reduces perceived latency, making it feel just like a real phone call.
 
-- **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*) so the elderly feel truly at home
+- **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*). The dialect is set once during onboarding by the caregiver, and Dadi never has to configure it herself — it just sounds right from the first sentence.
 
-- **📝 Parivaar Bridge (Weekly Ghostwriter)** — **Zero-Cost WhatsApp Automation!** A fully automated GitHub Actions workflow runs every Sunday, fetches 7 days of Dadi's conversations, uses **Sarvam AI** to generate a heartwarming Hinglish summary, and automatically sends it to family members via the **WhatsApp Cloud API**. Completely serverless, hands-free, and runs on free tiers!
+- **📝 Parivaar Bridge (Weekly Ghostwriter)** — Conversations are kept completely on-device for maximum privacy. The app generates and sends the WhatsApp summary locally, triggered by a scheduled background job inside the app itself using **Sarvam AI** to craft a heartwarming Hinglish summary for the family.
 
-- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — Detects emotions (Sad, Anxious, Happy) and nostalgia triggers. If Dadi mentions "the old days", the AI pivots to ask deeper questions about her youth — keeping her memories alive
+- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — LLM context window tracks emotional tone across the conversation. If sadness or anxiety markers appear, the AI shifts to a gentler pace and introduces a memory prompt from her stated life milestones (set during onboarding), keeping her memories alive.
 
-- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space where users can paste SMS or use voice to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts, plus a live Scam Awareness Feed to keep the elderly informed about ongoing frauds.
+- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts. Amber state is shown when the offline check found no match but online verification couldn't run — never shows a false green.
 
-- **💊 Smart Health & Security Affirmations** — Proactively asks "Have you taken your blood pressure pill?" and understands responses in both English (*yeah, nope*) and Hindi (*haan, baad mein*)
+- **💊 Dawai Saathi** — Proactively asks "Have you taken your blood pressure pill?" It understands partial responses (*"baad mein," "thodi der mein"*) and intelligently re-prompts once after a set delay rather than marking it done on a non-committal answer.
 
 ---
 

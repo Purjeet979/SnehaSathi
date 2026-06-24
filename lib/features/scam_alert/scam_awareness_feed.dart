@@ -39,7 +39,7 @@ class ScamAwarenessFeed extends StatelessWidget {
               ],
             ),
           ),
-        )).toList(),
+        )),
       ],
     );
   }

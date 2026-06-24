@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../scamshield/scam_shield_engine.dart';
 import 'scam_report_widget.dart';
 import 'scam_awareness_feed.dart';
 
@@ -11,90 +12,58 @@ class ScamAlertScreen extends ConsumerStatefulWidget {
   ConsumerState<ScamAlertScreen> createState() => _ScamAlertScreenState();
 }
 
-enum ScamVerdict { none, safe, caution, scam }
-
 class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
   final TextEditingController _textController = TextEditingController();
-  ScamVerdict _verdict = ScamVerdict.none;
-  String _verdictMessage = '';
+  ScamCheckResult? _result;
   bool _isChecking = false;
 
-  final List<String> _scamKeywords = [
-    'otp', 'kyc', 'account block', 'account suspend', 'upi pin', 
-    'lottery', 'prize jeeta', 'turant', 'abhi', 'urgent'
-  ];
-
   Future<void> _runCheck(String text) async {
-    if (text.trim().isEmpty) return;
-    
     setState(() {
       _isChecking = true;
-      _verdict = ScamVerdict.none;
+      _result = null;
     });
 
-    final lowerText = text.toLowerCase();
-    
-    // 1. Offline Check First
-    bool isOfflineScam = false;
-    for (final keyword in _scamKeywords) {
-      if (lowerText.contains(keyword)) {
-        isOfflineScam = true;
-        break;
-      }
-    }
-
-    // Default to Caution if offline yields nothing (because we haven't verified online yet)
-    ScamVerdict currentVerdict = isOfflineScam ? ScamVerdict.scam : ScamVerdict.caution;
-    String currentMessage = isOfflineScam 
-        ? "Yeh dhokha lag raha hai" 
-        : "Hum pakka nahi bata sakte, savdhan rahein";
-
-    setState(() {
-      _verdict = currentVerdict;
-      _verdictMessage = currentMessage;
-    });
-    
-    ref.read(ttsManagerProvider).speakFast(currentMessage, language: ref.read(languageProvider));
-
-    // 2. Online LLM Check
     try {
-      // ref.read(aiServiceProvider);
-      // Simulate network delay for the LLM call
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // For now, simple mock: short texts are safe, long texts with keywords are caught above
-      bool onlineIsSafe = text.length < 15 && !isOfflineScam;
-      
-      // Conflict Resolution: More cautious wins!
-      // Red (Scam) > Amber (Caution) > Green (Safe)
-      if (currentVerdict == ScamVerdict.scam) {
-        // Red stays Red.
-      } else if (!onlineIsSafe) {
-        // Online caught a scam! Upgrade to Red.
-        currentVerdict = ScamVerdict.scam;
-        currentMessage = "Yeh dhokha lag raha hai";
-      } else {
-        // Online explicitly verified it as Safe. Upgrade to Green.
-        currentVerdict = ScamVerdict.safe;
-        currentMessage = "Yeh theek dikh raha hai";
-      }
-      
-      setState(() {
-        _verdict = currentVerdict;
-        _verdictMessage = currentMessage;
-      });
-      
-      ref.read(ttsManagerProvider).speakFast(currentMessage, language: ref.read(languageProvider));
-
+      final result = await ref.read(scamShieldProvider).scanInput(text);
+      if (!mounted) return;
+      setState(() => _result = result);
+      await ref
+          .read(ttsManagerProvider)
+          .speakFast(result.hinglishExplanation, language: ref.read(languageProvider));
     } catch (e) {
-      // Network failed, we stay on the offline verdict (Amber or Red).
+      const fallback = ScamCheckResult(
+        level: ScamResultLevel.amber,
+        source: ScamResultSource.unknown,
+        hinglishExplanation: 'Check complete nahi ho paya. Savdhan rahiye aur personal details share mat kijiye.',
+        shouldAlertFamily: false,
+      );
+      if (mounted) {
+        setState(() => _result = fallback);
+        await ref
+            .read(ttsManagerProvider)
+            .speakFast(fallback.hinglishExplanation, language: ref.read(languageProvider));
+      }
     } finally {
       if (mounted) {
-        setState(() {
-          _isChecking = false;
-        });
+        setState(() => _isChecking = false);
       }
     }
+  }
+
+  Color _resultColor(ScamResultLevel level) {
+    return switch (level) {
+      ScamResultLevel.red => const Color(0xFFD32F2F),
+      ScamResultLevel.amber => const Color(0xFFF57C00),
+      ScamResultLevel.green => const Color(0xFF388E3C),
+    };
+  }
+
+  IconData _resultIcon(ScamResultLevel level) {
+    return switch (level) {
+      ScamResultLevel.red => Icons.warning,
+      ScamResultLevel.amber => Icons.help_outline,
+      ScamResultLevel.green => Icons.check_circle,
+    };
   }
 
   @override
@@ -150,39 +119,25 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
                   : const Text('Yeh Sahi Hai?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 24),
-            if (_verdict != ScamVerdict.none)
+            if (_result != null)
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: _verdict == ScamVerdict.scam 
-                      ? Colors.red.shade100 
-                      : (_verdict == ScamVerdict.safe ? Colors.green.shade100 : Colors.amber.shade100),
+                  color: _resultColor(_result!.level),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _verdict == ScamVerdict.scam 
-                      ? Colors.red 
-                      : (_verdict == ScamVerdict.safe ? Colors.green : Colors.amber),
-                    width: 3,
-                  )
                 ),
                 child: Column(
                   children: [
                     Icon(
-                      _verdict == ScamVerdict.scam 
-                          ? Icons.warning 
-                          : (_verdict == ScamVerdict.safe ? Icons.check_circle : Icons.help_outline),
+                      _resultIcon(_result!.level),
                       size: 72,
-                      color: _verdict == ScamVerdict.scam 
-                          ? Colors.red 
-                          : (_verdict == ScamVerdict.safe ? Colors.green : Colors.amber.shade800),
+                      color: Colors.white,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _verdictMessage,
+                      _result!.hinglishExplanation,
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: _verdict == ScamVerdict.scam 
-                          ? Colors.red.shade900 
-                          : (_verdict == ScamVerdict.safe ? Colors.green.shade900 : Colors.amber.shade900),
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,

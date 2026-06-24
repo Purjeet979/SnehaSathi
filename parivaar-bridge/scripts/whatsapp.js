@@ -1,29 +1,32 @@
 import axios from "axios";
 
 const GRAPH_API = "https://graph.facebook.com/v21.0";
+const REQUEST_TIMEOUT_MS = 30000;
 
-/**
- * WhatsApp Cloud API se message bhejne ka function.
- * 
- * Pehle template try karta hai — agar template approved nahi hai
- * toh plain text message bhejta hai (24-hour window mein kaam karega).
- */
-export async function sendWhatsApp(phoneNumber, summary, memberName, elderName) {
-  const formattedNumber = phoneNumber.replace(/\D/g, "");
+function getWhatsAppConfig() {
   const phoneId = process.env.PHONE_ID;
   const token = process.env.WHATSAPP_TOKEN;
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME || "weekly_family_update";
 
   if (!phoneId || !token) {
-    throw new Error("❌ PHONE_ID ya WHATSAPP_TOKEN environment variable missing hai!");
+    throw new Error("PHONE_ID or WHATSAPP_TOKEN environment variable is missing.");
   }
 
-  const url = `${GRAPH_API}/${phoneId}/messages`;
-  const headers = {
+  return { phoneId, token, templateName };
+}
+
+function requestHeaders(token) {
+  return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
+}
 
-  // ── Strategy 1: Template message try karo ──────────────────────
+export async function sendWhatsApp(phoneNumber, summary, memberName, elderName) {
+  const formattedNumber = phoneNumber.replace(/\D/g, "");
+  const { phoneId, token, templateName } = getWhatsAppConfig();
+  const url = `${GRAPH_API}/${phoneId}/messages`;
+
   try {
     const templateRes = await axios.post(
       url,
@@ -32,7 +35,7 @@ export async function sendWhatsApp(phoneNumber, summary, memberName, elderName) 
         to: formattedNumber,
         type: "template",
         template: {
-          name: "weekly_family_update",
+          name: templateName,
           language: { code: "hi" },
           components: [
             {
@@ -46,76 +49,45 @@ export async function sendWhatsApp(phoneNumber, summary, memberName, elderName) 
           ],
         },
       },
-      { headers }
-    );
-
-    console.log(`✅ Template message sent to ${memberName} (${formattedNumber})`);
-    return templateRes.data;
-  } catch (templateErr) {
-    const errData = templateErr.response?.data?.error;
-    console.warn(
-      `⚠️  Template send failed for ${memberName}: ${errData?.message || templateErr.message}`
-    );
-    console.log("🔄 Falling back to plain text message...");
-  }
-
-  // ── Strategy 2: Plain text fallback ────────────────────────────
-  // (Works only if user has messaged your number in last 24 hours)
-  try {
-    const greeting = `🙏 *${elderName} ka Hafte ka Haal-Chaal*\n\n`;
-    const footer = `\n\n— _Parivaar Bridge by SnehSaathi_ 💛`;
-    const fullMessage = `Namaste ${memberName} ji,\n\n${greeting}${summary}${footer}`;
-
-    const textRes = await axios.post(
-      url,
       {
-        messaging_product: "whatsapp",
-        to: formattedNumber,
-        type: "text",
-        text: { body: fullMessage },
-      },
-      { headers }
+        headers: requestHeaders(token),
+        timeout: REQUEST_TIMEOUT_MS,
+      }
     );
 
-    console.log(`✅ Text message sent to ${memberName} (${formattedNumber})`);
-    return textRes.data;
-  } catch (textErr) {
+    console.log(`WhatsApp template message sent to ${memberName} (${formattedNumber})`);
+    return templateRes.data;
+  } catch (error) {
+    const graphError = error.response?.data?.error;
     console.error(
-      `❌ Text message bhi fail hua for ${memberName}:`,
-      textErr.response?.data || textErr.message
+      `WhatsApp template send failed for ${memberName}: ${graphError?.message || error.message}`,
+      graphError || ""
     );
-    throw textErr;
+    throw error;
   }
 }
 
-/**
- * Test message bhejne ka utility — setup verify karne ke liye
- */
 export async function sendTestMessage(phoneNumber) {
   const formattedNumber = phoneNumber.replace(/\D/g, "");
-  const phoneId = process.env.PHONE_ID;
-  const token = process.env.WHATSAPP_TOKEN;
-
+  const { phoneId, token } = getWhatsAppConfig();
   const url = `${GRAPH_API}/${phoneId}/messages`;
 
-  const res = await axios.post(
+  const response = await axios.post(
     url,
     {
       messaging_product: "whatsapp",
       to: formattedNumber,
       type: "text",
       text: {
-        body: "🕊️ SnehSaathi Parivaar Bridge is alive!\n\nYe test message hai — weekly ghostwriter sahi se kaam kar raha hai. 💛",
+        body: "SnehSaathi Parivaar Bridge test message.",
       },
     },
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: requestHeaders(token),
+      timeout: REQUEST_TIMEOUT_MS,
     }
   );
 
-  console.log("✅ Test message sent!", res.data);
-  return res.data;
+  console.log("WhatsApp test message sent.", response.data);
+  return response.data;
 }

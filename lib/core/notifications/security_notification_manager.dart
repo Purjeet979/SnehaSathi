@@ -5,8 +5,10 @@ import 'package:timezone/timezone.dart' as tz;
 
 class SecurityNotificationManager {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
+  static VoidCallback? _onSecurityTap;
 
-  static Future<void> initialize() async {
+  static Future<void> initialize({VoidCallback? onSecurityTap}) async {
+    _onSecurityTap = onSecurityTap;
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -20,7 +22,9 @@ class SecurityNotificationManager {
     await _notificationsPlugin.initialize(
       settings: initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // Handle notification tap
+        if (response.payload == 'security') {
+          _onSecurityTap?.call();
+        }
       },
     );
   }
@@ -53,6 +57,27 @@ class SecurityNotificationManager {
       notificationDetails: platformDetails,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at the exact time
+      payload: 'security',
+    );
+  }
+
+  static Future<void> scheduleOneShotTestNotification() async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'security_channel',
+      'Security Reminders',
+      channelDescription: 'Daily reminders for night security checks',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    await _notificationsPlugin.zonedSchedule(
+      id: 99,
+      title: 'SnehSaathi Test Notification',
+      body: 'Tap should open the Security screen.',
+      scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10)),
+      notificationDetails: const NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'security',
     );
   }
 }
