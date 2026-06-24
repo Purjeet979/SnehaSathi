@@ -1,0 +1,35 @@
+name: "🕊️ Weekly Ghostwriter — Parivaar Bridge"
+
+on:
+  schedule:
+    # Har Sunday 8:00 PM IST = 2:30 PM UTC
+    - cron: '30 14 * * 0'
+  workflow_dispatch:   # Manual test ke liye Actions tab mein button milega
+
+jobs:
+  send-weekly-summary:
+    name: "📝 Generate & Send Weekly Summary"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: parivaar-bridge
+
+    steps:
+      - name: "📦 Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "🟢 Setup Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: "📥 Install dependencies"
+        run: npm install
+
+      - name: "🚀 Run Weekly Ghostwriter"
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
+          WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
+          PHONE_ID: ${{ secrets.PHONE_ID }}
+        run: npm run weekly

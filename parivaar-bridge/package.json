@@ -1,0 +1,17 @@
+{
+  "name": "parivaar-bridge",
+  "version": "1.0.0",
+  "description": "🕊️ Weekly Ghostwriter — Emotional summaries of elder conversations sent to family via WhatsApp",
+  "type": "module",
+  "scripts": {
+    "weekly": "node scripts/weeklyGhostwriter.js",
+    "test:local": "node scripts/testLocal.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
