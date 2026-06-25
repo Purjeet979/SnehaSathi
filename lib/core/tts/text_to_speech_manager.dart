@@ -15,8 +15,12 @@ class TextToSpeechManager {
     await _flutterTts.setSpeechRate(0.4); // Slower for Dadi
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
+    await _flutterTts.awaitSpeakCompletion(true); // Wait for speech to finish before returning
     _isReady = true;
   }
+
+  String _currentLang = "";
+  double _currentRate = -1.0;
 
   Future<void> speakFast(String text, {String language = "hi", Emotion emotion = Emotion.neutral, Function? onComplete}) async {
     if (!_isReady) return;
@@ -26,7 +30,10 @@ class TextToSpeechManager {
     }
 
     final targetLocale = (language == "en") ? "en-IN" : "hi-IN";
-    await _flutterTts.setLanguage(targetLocale);
+    if (_currentLang != targetLocale) {
+      await _flutterTts.setLanguage(targetLocale);
+      _currentLang = targetLocale;
+    }
 
     double speechRate = 0.4; // Base speed lowered
     switch (emotion) {
@@ -46,7 +53,10 @@ class TextToSpeechManager {
         speechRate = 0.4;
     }
 
-    await _flutterTts.setSpeechRate(speechRate);
+    if (_currentRate != speechRate) {
+      await _flutterTts.setSpeechRate(speechRate);
+      _currentRate = speechRate;
+    }
 
     _flutterTts.setCompletionHandler(() {
       if (onComplete != null) onComplete();

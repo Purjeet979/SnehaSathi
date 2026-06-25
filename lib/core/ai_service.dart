@@ -37,7 +37,7 @@ class AIService {
       {"role": "user", "content": userText}
     ];
     
-    final response = await _sarvamClient.chat(messages);
+    final response = await _sarvamClient.chat(messages, languageCode: languageCode);
     return response;
   }
 

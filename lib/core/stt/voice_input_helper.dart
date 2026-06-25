@@ -54,6 +54,8 @@ class VoiceInputHelper {
     }
   }
 
+  bool _isCheckingSilence = false;
+
   void _startSilenceDetection(Function() onStop, Function(String) onResult, String languageCode) {
     int silenceTicks = 0;
     
@@ -63,6 +65,9 @@ class VoiceInputHelper {
         timer.cancel();
         return;
       }
+
+      if (_isCheckingSilence) return;
+      _isCheckingSilence = true;
 
       try {
         final amplitude = await _audioRecorder.getAmplitude();
@@ -74,6 +79,8 @@ class VoiceInputHelper {
         }
       } catch (e) {
         silenceTicks++;
+      } finally {
+        _isCheckingSilence = false;
       }
 
       // 2 seconds of silence for responsive auto-stop (10 ticks * 200ms)

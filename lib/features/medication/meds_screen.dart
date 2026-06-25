@@ -27,10 +27,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     final settings = ref.read(userSettingsProvider);
     final prefs = await SharedPreferences.getInstance();
     
-    // Day Rollover Logic
     final now = DateTime.now();
-    // If current time is past dayStartHour, "today" started today at dayStartHour.
-    // If it's before dayStartHour, "today" started yesterday at dayStartHour.
     final currentDayBoundary = DateTime(
       now.year, now.month, now.hour >= settings.dayStartHour ? now.day : now.day - 1, 
       settings.dayStartHour
@@ -39,7 +36,6 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     final lastResetMs = prefs.getInt('lastMedsResetMs') ?? 0;
     
     if (lastResetMs < currentDayBoundary.millisecondsSinceEpoch) {
-      // Need to reset all meds for the new day
       final allMeds = await db.getAllMedications();
       for (var med in allMeds) {
         if (med.isTaken) {
@@ -68,8 +64,8 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     final lang = ref.read(languageProvider);
     await db.updateMedication(med.copyWith(isTaken: !med.isTaken));
     
-    if (!med.isTaken) { // Because we just toggled it to true
-      final msg = lang == 'hi' ? "Shabash dadi, dawai kha li!" : "Well done Dadi, you took your medicine!";
+    if (!med.isTaken) { 
+      final msg = lang == 'hi' ? "शाबाश, दवाई खा ली!" : "Well done, you took your medicine!";
       ref.read(ttsManagerProvider).speakFast(msg, language: lang);
     }
     _refreshMeds();
@@ -80,19 +76,19 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(lang == 'hi' ? 'Dawai Hatayein?' : 'Remove Medicine?'),
+        title: Text(lang == 'hi' ? 'दवाई हटाएँ?' : 'Remove Medicine?'),
         content: Text(lang == 'hi' 
-            ? 'Kya aap "${med.name}" ko list se hatana chahte hain?' 
+            ? 'क्या आप "${med.name}" को लिस्ट से हटाना चाहते हैं?' 
             : 'Do you want to remove "${med.name}" from the list?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false), 
-            child: Text(lang == 'hi' ? 'Nahi' : 'No')
+            child: Text(lang == 'hi' ? 'नहीं' : 'No')
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
-            child: Text(lang == 'hi' ? 'Haan, Hatayein' : 'Yes, Remove'),
+            child: Text(lang == 'hi' ? 'हाँ, हटाएँ' : 'Yes, Remove'),
           ),
         ],
       ),
@@ -105,10 +101,9 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     }
   }
 
-  // Parses voice input to add a med, e.g., "Subah Paracetamol"
   void _startVoiceAddFlow() {
     final lang = ref.read(languageProvider);
-    final prompt = lang == 'hi' ? "Kaunsi dawai aur kab khani hai?" : "Which medicine and when to take it?";
+    final prompt = lang == 'hi' ? "कौनसी दवाई और कब खानी है?" : "Which medicine and when to take it?";
     ref.read(ttsManagerProvider).speakFast(prompt, language: lang);
     
     ref.read(voiceInputProvider).startListening(
@@ -116,30 +111,18 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
       onStop: () {},
       onResult: (text) async {
         if (text.trim().isEmpty) return;
-        
-        // Prevent error messages from being added as meds
         if (text.contains("issue") || text.contains("bol sakte")) return;
         
-        String timeToTake = 'Dopahar';
+        String timeToTake = 'Subah';
         final lower = text.toLowerCase();
-        if (lang == 'hi') {
-          if (lower.contains('subah') || lower.contains('morning')) {
-            timeToTake = 'Subah';
-          } else if (lower.contains('shaam') || lower.contains('evening')) {
-            timeToTake = 'Shaam';
-          } else if (lower.contains('raat') || lower.contains('night')) {
-            timeToTake = 'Raat';
-          }
-        } else {
-          if (lower.contains('morning')) {
-            timeToTake = 'Subah';
-          } else if (lower.contains('afternoon')) {
-            timeToTake = 'Dopahar';
-          } else if (lower.contains('evening')) {
-            timeToTake = 'Shaam';
-          } else if (lower.contains('night')) {
-            timeToTake = 'Raat';
-          }
+        if (lower.contains('subah') || lower.contains('morning')) {
+          timeToTake = 'Subah';
+        } else if (lower.contains('dopahar') || lower.contains('afternoon')) {
+          timeToTake = 'Dopahar';
+        } else if (lower.contains('shaam') || lower.contains('evening')) {
+          timeToTake = 'Shaam';
+        } else if (lower.contains('raat') || lower.contains('night')) {
+          timeToTake = 'Raat';
         }
         
         final db = ref.read(databaseProvider);
@@ -148,7 +131,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
           timeToTake: timeToTake,
         ));
         
-        final confirmMsg = lang == 'hi' ? "Dawai add ho gayi" : "Medicine added successfully";
+        final confirmMsg = lang == 'hi' ? "दवाई ऐड हो गयी" : "Medicine added successfully";
         ref.read(ttsManagerProvider).speakFast(confirmMsg, language: lang);
         _refreshMeds();
       },
@@ -165,14 +148,14 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(lang == 'hi' ? 'Dawai Add Karein' : 'Add Medicine'),
+          title: Text(lang == 'hi' ? 'दवाई ऐड करें' : 'Add Medicine'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameCtrl,
                 decoration: InputDecoration(
-                  labelText: lang == 'hi' ? 'Dawai ka naam' : 'Medicine Name', 
+                  labelText: lang == 'hi' ? 'दवाई का नाम' : 'Medicine Name', 
                   border: const OutlineInputBorder()
                 ),
               ),
@@ -182,17 +165,10 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
                 isExpanded: true,
                 items: ['Subah', 'Dopahar', 'Shaam', 'Raat'].map((t) {
                   String label = t;
-                  if (lang == 'en') {
-                    if (t == 'Subah') {
-                      label = 'Morning';
-                    } else if (t == 'Dopahar') {
-                      label = 'Afternoon';
-                    } else if (t == 'Shaam') {
-                      label = 'Evening';
-                    } else if (t == 'Raat') {
-                      label = 'Night';
-                    }
-                  }
+                  if (t == 'Subah') label = lang == 'hi' ? 'सुबह' : 'Morning';
+                  if (t == 'Dopahar') label = lang == 'hi' ? 'दोपहर' : 'Afternoon';
+                  if (t == 'Shaam') label = lang == 'hi' ? 'शाम' : 'Evening';
+                  if (t == 'Raat') label = lang == 'hi' ? 'रात' : 'Night';
                   return DropdownMenuItem(value: t, child: Text(label));
                 }).toList(),
                 onChanged: (val) {
@@ -204,7 +180,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(lang == 'hi' ? 'Cancel' : 'Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(lang == 'hi' ? 'कैंसिल' : 'Cancel')),
             ElevatedButton(
               onPressed: () async {
                 if (nameCtrl.text.isEmpty) return;
@@ -217,7 +193,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
                 Navigator.pop(ctx);
                 _refreshMeds();
               },
-              child: Text(lang == 'hi' ? 'Add' : 'Add'),
+              child: Text(lang == 'hi' ? 'ऐड करें' : 'Add'),
             )
           ],
         ),
@@ -229,17 +205,10 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     if (medsForTime.isEmpty) return const SizedBox.shrink();
     
     String displayTitle = title;
-    if (lang == 'en') {
-      if (title == 'Subah') {
-        displayTitle = 'Morning';
-      } else if (title == 'Dopahar') {
-        displayTitle = 'Afternoon';
-      } else if (title == 'Shaam') {
-        displayTitle = 'Evening';
-      } else if (title == 'Raat') {
-        displayTitle = 'Night';
-      }
-    }
+    if (title == 'Subah') displayTitle = lang == 'hi' ? 'सुबह' : 'Morning';
+    if (title == 'Dopahar') displayTitle = lang == 'hi' ? 'दोपहर' : 'Afternoon';
+    if (title == 'Shaam') displayTitle = lang == 'hi' ? 'शाम' : 'Evening';
+    if (title == 'Raat') displayTitle = lang == 'hi' ? 'रात' : 'Night';
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,40 +227,36 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
           margin: const EdgeInsets.only(bottom: 12),
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: InkWell(
-            onTap: () => _toggleMed(med),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                children: [
-                  Transform.scale(
-                    scale: 2.0,
-                    child: Checkbox(
-                      value: med.isTaken,
-                      onChanged: (val) => _toggleMed(med),
-                      activeColor: Colors.green,
-                      shape: const CircleBorder(),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              children: [
+                Transform.scale(
+                  scale: 2.0,
+                  child: Checkbox(
+                    value: med.isTaken,
+                    onChanged: (val) => _toggleMed(med),
+                    activeColor: Colors.green,
+                    shape: const CircleBorder(),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Text(
+                    med.name,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      decoration: med.isTaken ? TextDecoration.lineThrough : null,
+                      color: med.isTaken ? Colors.grey : Colors.black87,
                     ),
                   ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: Text(
-                      med.name,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        decoration: med.isTaken ? TextDecoration.lineThrough : null,
-                        color: med.isTaken ? Colors.grey : Colors.black87,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 30),
-                    onPressed: () => _deleteMed(med),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 30),
+                  onPressed: () => _deleteMed(med),
+                ),
+              ],
             ),
           ),
         )),
@@ -312,10 +277,10 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
     final raatMeds = _meds.where((m) => m.timeToTake == 'Raat').toList();
 
     return Scaffold(
-      backgroundColor: Colors.green.shade50,
+      backgroundColor: const Color(0xFFFFF8E1),
       appBar: AppBar(
         title: Text(
-          lang == 'hi' ? 'Dawai Yaad Dilayein' : 'Medicine Reminder', 
+          lang == 'hi' ? 'दवाई याद दिलाएँ' : 'Medicine Reminder', 
           style: const TextStyle(fontWeight: FontWeight.bold)
         ),
         backgroundColor: Colors.green.shade700,
@@ -329,7 +294,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
                 const Icon(Icons.medical_services_outlined, size: 100, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  lang == 'hi' ? 'Koi dawai add nahi hai.' : 'No medicines added.', 
+                  lang == 'hi' ? 'कोई दवाई ऐड नहीं है।' : 'No medicines added.', 
                   style: const TextStyle(fontSize: 24, color: Colors.grey)
                 ),
               ],
@@ -342,7 +307,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
               _buildTimeGroup('Dopahar', Icons.wb_sunny_outlined, Colors.orangeAccent, dopaharMeds, lang),
               _buildTimeGroup('Shaam', Icons.wb_cloudy, Colors.blueGrey, shaamMeds, lang),
               _buildTimeGroup('Raat', Icons.nightlight_round, Colors.indigo, raatMeds, lang),
-              const SizedBox(height: 100), // Space for FAB
+              const SizedBox(height: 100),
             ],
           ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -357,7 +322,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
               backgroundColor: Colors.white,
               foregroundColor: Colors.green.shade800,
               icon: const Icon(Icons.keyboard),
-              label: Text(lang == 'hi' ? 'Type Karein' : 'Type Entry'),
+              label: Text(lang == 'hi' ? 'टाइप करें' : 'Type Entry'),
             ),
             FloatingActionButton.extended(
               heroTag: 'voiceAdd',
@@ -366,7 +331,7 @@ class _MedsScreenState extends ConsumerState<MedsScreen> {
               foregroundColor: Colors.white,
               icon: const Icon(Icons.mic, size: 36),
               label: Text(
-                lang == 'hi' ? 'Bolkar Add Karein' : 'Add by Voice', 
+                lang == 'hi' ? 'बोलकर ऐड करें' : 'Add by Voice',
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
               ),
             ),

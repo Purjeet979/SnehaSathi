@@ -18,30 +18,41 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
   bool _isChecking = false;
 
   Future<void> _runCheck(String text) async {
+    if (text.trim().isEmpty) return;
+    
     setState(() {
       _isChecking = true;
       _result = null;
     });
 
+    final lang = ref.read(languageProvider);
+
     try {
       final result = await ref.read(scamShieldProvider).scanInput(text);
       if (!mounted) return;
       setState(() => _result = result);
-      await ref
-          .read(ttsManagerProvider)
-          .speakFast(result.hinglishExplanation, language: ref.read(languageProvider));
+      
+      String explanation = result.hinglishExplanation;
+      if (lang == 'en') {
+        // Simple translation for now, but usually engine should return English
+        explanation = explanation.replaceAll('Savdhan', 'Beware').replaceAll('Nahi', 'No');
+      }
+
+      await ref.read(ttsManagerProvider).speakFast(explanation, language: lang);
     } catch (e) {
+      final fallbackMsg = lang == 'hi'
+          ? 'Check complete nahi ho paya. Savdhan rahiye.'
+          : 'Check could not be completed. Please stay safe.';
+      
       const fallback = ScamCheckResult(
         level: ScamResultLevel.amber,
         source: ScamResultSource.unknown,
-        hinglishExplanation: 'Check complete nahi ho paya. Savdhan rahiye aur personal details share mat kijiye.',
+        hinglishExplanation: 'Error',
         shouldAlertFamily: false,
       );
       if (mounted) {
         setState(() => _result = fallback);
-        await ref
-            .read(ttsManagerProvider)
-            .speakFast(fallback.hinglishExplanation, language: ref.read(languageProvider));
+        await ref.read(ttsManagerProvider).speakFast(fallbackMsg, language: lang);
       }
     } finally {
       if (mounted) {
@@ -68,9 +79,12 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(languageProvider);
+    
     return Scaffold(
+      backgroundColor: const Color(0xFFFFF8E1),
       appBar: AppBar(
-        title: const Text('Saavdhan'),
+        title: Text(lang == 'hi' ? 'Saavdhan' : 'Beware'),
         backgroundColor: Colors.orange.shade800,
         foregroundColor: Colors.white,
       ),
@@ -81,13 +95,18 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
           children: [
             const ScamReportWidget(),
             const SizedBox(height: 24),
-            Text('Message Ya Call Check Karein', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              lang == 'hi' ? 'Message Ya Call Check Karein' : 'Check Message or Call', 
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _textController,
               decoration: InputDecoration(
-                hintText: 'Yahan SMS paste karein ya mic dabayein...',
+                hintText: lang == 'hi' ? 'Yahan SMS paste karein ya mic dabayein...' : 'Paste SMS here or use mic...',
                 border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.mic, size: 36, color: Colors.blue),
                   onPressed: () {
@@ -97,7 +116,7 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
                       onResult: (text) {
                         _textController.text = text;
                       },
-                      languageCode: ref.read(languageProvider) == 'hi' ? 'hi-IN' : 'en-IN'
+                      languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN'
                     );
                   },
                 ),
@@ -116,7 +135,10 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
               ),
               child: _isChecking 
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Yeh Sahi Hai?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  : Text(
+                      lang == 'hi' ? 'Yeh Sahi Hai?' : 'Is this safe?', 
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
+                    ),
             ),
             const SizedBox(height: 24),
             if (_result != null)

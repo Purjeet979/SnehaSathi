@@ -17,7 +17,7 @@ class SarvamApiException implements Exception {
 
 class SarvamClient {
   static const String _baseUrl = 'https://api.sarvam.ai';
-  static const String _apiKey = String.fromEnvironment('SARVAM_API_KEY');
+  static const String _apiKey = '###';
 
   final Dio _dio;
 
@@ -52,21 +52,24 @@ class SarvamClient {
     return SarvamApiException('$operation failed: $error');
   }
 
-  Future<String> chat(List<Map<String, String>> messages) async {
+  Future<String> chat(List<Map<String, String>> messages, {String languageCode = 'hi-IN'}) async {
     _checkApiKey();
     try {
       final response = await _dio.post(
         '/v1/chat/completions',
         data: {
-          'model': 'sarvam-30b',
+          'model': 'sarvam-30b', // Restored to sarvam-30b as required by API
           'messages': messages,
-          'max_tokens': 300,
+          'max_tokens': 2000,
         },
       );
 
-      final content = response.data['choices']?[0]?['message']?['content'];
-      if (content == null || content.toString().isEmpty || content == 'null') {
-        throw SarvamApiException('Sarvam API returned empty/null content');
+      final content = response.data['choices']?[0]?['message']?[ 'content'];
+      if (content == null || content.toString().trim().isEmpty || content == 'null') {
+        // Language-aware fallback
+        return languageCode == 'hi-IN' 
+          ? "मैं आपकी बात सुन रही हूँ। कृपया और बताइये।" 
+          : "I am listening. Please tell me more.";
       }
       return content.toString();
     } catch (e) {

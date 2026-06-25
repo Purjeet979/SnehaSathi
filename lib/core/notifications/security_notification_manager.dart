@@ -55,7 +55,7 @@ class SecurityNotificationManager {
       body: 'Dadi, kya aapne darwaza aur gas band kar diya hai?',
       scheduledDate: scheduledDate,
       notificationDetails: platformDetails,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time, // Repeat daily at the exact time
       payload: 'security',
     );
@@ -76,7 +76,7 @@ class SecurityNotificationManager {
       body: 'Tap should open the Security screen.',
       scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(seconds: 10)),
       notificationDetails: const NotificationDetails(android: androidDetails),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: 'security',
     );
   }

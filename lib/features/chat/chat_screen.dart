@@ -88,6 +88,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _handleVoiceResult(String userText) async {
+    final tts = ref.read(ttsManagerProvider);
+    final lang = ref.read(languageProvider);
+
+    // Prevent STT failure messages from being processed as user input
+    if (userText == "There is a slight issue. Could you please speak again?" || 
+        userText == "Phir se boliye. Awaaz saaf nahi aayi.") {
+      setState(() {
+        _isListening = false;
+        _isProcessing = false;
+        _messages.add(Message(userText, false)); // Assistant message
+      });
+      _scrollToBottom();
+      await tts.speakFast(userText, language: lang);
+      return;
+    }
+
     setState(() {
       _messages.add(Message(userText, true));
       _isProcessing = true;
@@ -95,9 +111,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToBottom();
 
     final aiService = ref.read(aiServiceProvider);
-    final tts = ref.read(ttsManagerProvider);
     final scamShield = ref.read(scamShieldProvider);
-    final lang = ref.read(languageProvider);
     final dialect = ref.read(dialectProvider);
     final db = ref.read(databaseProvider);
 
