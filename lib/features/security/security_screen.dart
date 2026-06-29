@@ -12,18 +12,27 @@ class SecurityScreen extends ConsumerStatefulWidget {
 class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   int _currentQuestionIndex = 0;
   
-  final Map<String, List<String>> _questionsMap = {
-    'hi': [
-      "Darwaza band kiya?",
-      "Khidki band hai?",
-      "Gas off kiya?"
-    ],
-    'en': [
-      "Did you lock the door?",
-      "Is the window closed?",
-      "Did you turn off the gas?"
-    ]
-  };
+  List<String> _getQuestions(String lang, String dialect) {
+    if (lang == 'en') {
+      return [
+        "Did you lock the door?",
+        "Is the window closed?",
+        "Did you turn off the gas?"
+      ];
+    }
+    if (dialect == 'Marathi') {
+      return [
+        "तुम्ही दार बंद केले का?",
+        "खिडकी बंद आहे का?",
+        "गॅस बंद केला का?"
+      ];
+    }
+    return [
+      "क्या आपने दरवाजा बंद किया?",
+      "क्या खिड़की बंद है?",
+      "क्या गैस बंद कर दिया?"
+    ];
+  }
 
   final List<bool?> _answers = [null, null, null];
 
@@ -37,7 +46,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   void _askCurrentQuestion() {
     final lang = ref.read(languageProvider);
-    final questions = _questionsMap[lang]!;
+    final dialect = ref.read(dialectProvider);
+    final questions = _getQuestions(lang, dialect);
     if (_currentQuestionIndex < questions.length) {
       ref.read(ttsManagerProvider).speakFast(
         questions[_currentQuestionIndex], 
@@ -48,7 +58,8 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   void _answerQuestion(bool isYes) {
     final lang = ref.read(languageProvider);
-    final questions = _questionsMap[lang]!;
+    final dialect = ref.read(dialectProvider);
+    final questions = _getQuestions(lang, dialect);
     
     setState(() {
       _answers[_currentQuestionIndex] = isYes;
@@ -60,14 +71,18 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
     } else {
       final allYes = _answers.every((a) => a == true);
       String msg;
-      if (lang == 'hi') {
-        msg = allYes 
-            ? "Bahut badhiya dadi, ab chain se so jaiye. Goodnight!" 
-            : "Kripya uth kar ek baar check kar lijiye. Safety zaroori hai!";
-      } else {
+      if (lang == 'en') {
         msg = allYes
-            ? "Very good Dadi, now sleep peacefully. Goodnight!"
+            ? "Very good! Now sleep peacefully. Goodnight!"
             : "Please get up and check once. Safety is important!";
+      } else if (dialect == 'Marathi') {
+        msg = allYes
+            ? "खूप छान! आता शांतपणे झोपा. शुभ रात्री!"
+            : "कृपया उठून एकदा तपासा. सुरक्षा महत्त्वाची आहे!";
+      } else {
+        msg = allYes 
+            ? "बहुत बढ़िया! अब चैन से सो जाइये। शुभ रात्रि!" 
+            : "कृपया उठ कर एक बार चेक कर लीजिये। सुरक्षा जरूरी है!";
       }
       ref.read(ttsManagerProvider).speakFast(msg, language: lang);
     }
@@ -75,7 +90,11 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
 
   void _listenForAnswer() {
     final lang = ref.read(languageProvider);
-    final prompt = lang == 'hi' ? "Boliye, haan ya nahi?" : "Please say yes or no.";
+    final dialect = ref.read(dialectProvider);
+    String prompt = "Please say yes or no.";
+    if (lang != 'en') {
+      prompt = dialect == 'Marathi' ? "बोला, होय की नाही?" : "बोलिये, हाँ या नहीं?";
+    }
     
     ref.read(ttsManagerProvider).speakFast(prompt, language: lang);
     ref.read(voiceInputProvider).startListening(
@@ -85,10 +104,10 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
         final lower = text.toLowerCase();
         bool recognized = false;
         if (lang == 'hi') {
-          if (lower.contains('haan') || lower.contains('yes') || lower.contains('ji')) {
+          if (lower.contains('haan') || lower.contains('yes') || lower.contains('ji') || lower.contains('हाँ') || lower.contains('होय') || lower.contains('हो')) {
             _answerQuestion(true);
             recognized = true;
-          } else if (lower.contains('nahi') || lower.contains('no') || lower.contains('na')) {
+          } else if (lower.contains('nahi') || lower.contains('no') || lower.contains('na') || lower.contains('नहीं') || lower.contains('नाही')) {
             _answerQuestion(false);
             recognized = true;
           }
@@ -103,9 +122,9 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
         }
 
         if (!recognized) {
-          final errorMsg = lang == 'hi' 
-              ? "Samajh nahi aaya. Kripya button dabayein." 
-              : "I didn't understand. Please press the button.";
+          final errorMsg = lang == 'en'
+              ? "I didn't understand. Please press the button."
+              : (dialect == 'Marathi' ? "समजले नाही. कृपया बटण दाबा." : "समझ नहीं आया। कृपया बटन दबाएं।");
           ref.read(ttsManagerProvider).speakFast(errorMsg, language: lang);
         }
       },
@@ -124,14 +143,17 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(languageProvider);
-    final questions = _questionsMap[lang]!;
+    final dialect = ref.watch(dialectProvider);
+    final questions = _getQuestions(lang, dialect);
     final bool isDone = _currentQuestionIndex >= questions.length;
+
+    String barTitle = lang == 'en' ? 'Night Safety Check' : (dialect == 'Marathi' ? 'रात्रीची सुरक्षा तपासणी' : 'रात की सुरक्षा जाँच');
 
     return Scaffold(
       backgroundColor: Colors.orange.shade50,
       appBar: AppBar(
         title: Text(
-          lang == 'hi' ? 'Raat Ki Safety Check' : 'Night Safety Check', 
+          barTitle, 
           style: const TextStyle(fontWeight: FontWeight.bold)
         ),
         backgroundColor: Colors.orange.shade800,
@@ -140,21 +162,26 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: isDone ? _buildCompletionState(lang, questions) : _buildQuestionState(lang, questions),
+          child: isDone ? _buildCompletionState(lang, dialect, questions) : _buildQuestionState(lang, dialect, questions),
         ),
       ),
     );
   }
 
-  Widget _buildQuestionState(String lang, List<String> questions) {
+  Widget _buildQuestionState(String lang, String dialect, List<String> questions) {
+    String qCount = lang == 'en' 
+        ? "Question ${_currentQuestionIndex + 1} of ${questions.length}"
+        : (dialect == 'Marathi' ? "प्रश्न ${_currentQuestionIndex + 1} / ${questions.length}" : "सवाल ${_currentQuestionIndex + 1} / ${questions.length}");
+    String btnYes = lang == 'en' ? 'Yes' : (dialect == 'Marathi' ? 'होय' : 'हाँ');
+    String btnNo = lang == 'en' ? 'No' : (dialect == 'Marathi' ? 'नाही' : 'नहीं');
+    String btnVoice = lang == 'en' ? 'Answer via Voice' : (dialect == 'Marathi' ? 'बोलून उत्तर द्या' : 'बोलकर जवाब दें');
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          lang == 'hi' 
-              ? "Sawaal ${_currentQuestionIndex + 1} of ${questions.length}"
-              : "Question ${_currentQuestionIndex + 1} of ${questions.length}",
+          qCount,
           style: const TextStyle(fontSize: 20, color: Colors.grey, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
@@ -172,7 +199,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
               const SizedBox(height: 24),
               Text(
                 questions[_currentQuestionIndex],
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -184,12 +211,12 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _answerQuestion(true),
-                icon: const Icon(Icons.check_circle, size: 40),
-                label: Text(lang == 'hi' ? 'Haan' : 'Yes', style: const TextStyle(fontSize: 28)),
+                icon: const Icon(Icons.check_circle, size: 36),
+                label: Text(btnYes, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
@@ -198,40 +225,45 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _answerQuestion(false),
-                icon: const Icon(Icons.cancel, size: 40),
-                label: Text(lang == 'hi' ? 'Nahi' : 'No', style: const TextStyle(fontSize: 28)),
+                icon: const Icon(Icons.cancel, size: 36),
+                label: Text(btnNo, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 32),
-        ElevatedButton.icon(
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
           onPressed: _listenForAnswer,
-          icon: const Icon(Icons.mic, size: 40, color: Colors.blue),
-          label: Text(
-            lang == 'hi' ? 'Bolkar Jawab Dein' : 'Speak Your Answer', 
-            style: const TextStyle(fontSize: 24, color: Colors.blue)
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue.shade50,
-            padding: const EdgeInsets.symmetric(vertical: 24),
+          icon: const Icon(Icons.mic, size: 32, color: Colors.blue),
+          label: Text(btnVoice, style: const TextStyle(fontSize: 22, color: Colors.blue, fontWeight: FontWeight.bold)),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            side: const BorderSide(color: Colors.blue, width: 2),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 0,
-            side: BorderSide(color: Colors.blue.shade200, width: 2),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildCompletionState(String lang, List<String> questions) {
+  Widget _buildCompletionState(String lang, String dialect, List<String> questions) {
     final allYes = _answers.every((a) => a == true);
+
+    String compTitle = lang == 'en' 
+        ? (allYes ? "Everything is safe!" : "Some things need checking!")
+        : (dialect == 'Marathi' 
+            ? (allYes ? "सर्व काही सुरक्षित आहे!" : "काही गोष्टी तपासणे आवश्यक आहे!")
+            : (allYes ? "सब कुछ सुरक्षित है!" : "कुछ चीजें चेक करें!"));
+
+    String compBtn = lang == 'en' 
+        ? 'Check Again' 
+        : (dialect == 'Marathi' ? 'पुन्हा तपासा' : 'पुनः चेक करें');
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -243,9 +275,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
         ),
         const SizedBox(height: 32),
         Text(
-          allYes 
-              ? (lang == 'hi' ? "Sab kuch safe hai!" : "Everything is safe!")
-              : (lang == 'hi' ? "Kuch cheezein check karein!" : "Some things need checking!"),
+          compTitle,
           style: TextStyle(
             fontSize: 32, 
             fontWeight: FontWeight.bold, 
@@ -270,7 +300,7 @@ class _SecurityScreenState extends ConsumerState<SecurityScreen> {
           onPressed: _resetChecklist,
           icon: const Icon(Icons.refresh, size: 32),
           label: Text(
-            lang == 'hi' ? 'Wapas Check Karein' : 'Check Again', 
+            compBtn, 
             style: const TextStyle(fontSize: 24)
           ),
           style: ElevatedButton.styleFrom(
