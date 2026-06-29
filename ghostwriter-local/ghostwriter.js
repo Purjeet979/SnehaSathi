@@ -65,8 +65,8 @@ ${dailySummaries.join("\n")}
 // 🔹 Send WhatsApp
 async function sendWhatsApp(message) {
   await client.messages.create({
-    from: "whatsapp:+14155238886", // Twilio sandbox
-    to: "whatsapp:+918390346801",  // Rohan's number
+    from: process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886", // Twilio sandbox
+    to: process.env.TWILIO_WHATSAPP_TO || "whatsapp:+##",
     body: message,
   });
 

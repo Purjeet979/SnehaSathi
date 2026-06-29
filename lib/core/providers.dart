@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'network/sarvam_client.dart';
 import '../data/repository/local_embedding_engine.dart';
 import '../data/local/database.dart';
@@ -58,10 +59,23 @@ final languageProvider = NotifierProvider<LanguageNotifier, String>(LanguageNoti
 
 class DialectNotifier extends Notifier<String> {
   @override
-  String build() => 'Hindi';
+  String build() {
+    _loadDialect();
+    return 'Hindi';
+  }
 
-  void setDialect(String dialect) {
+  Future<void> _loadDialect() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('selected_dialect');
+    if (saved != null && saved.isNotEmpty) {
+      state = saved;
+    }
+  }
+
+  void setDialect(String dialect) async {
     state = dialect;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_dialect', dialect);
   }
 }
 final dialectProvider = NotifierProvider<DialectNotifier, String>(DialectNotifier.new);

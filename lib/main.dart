@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
+import 'features/onboarding/caregiver_setup_screen.dart';
 import 'features/security/security_screen.dart';
 import 'data/local/user_preferences_repository.dart';
 import 'core/workers/work_manager_helper.dart';
@@ -30,12 +31,14 @@ void main() async {
     );
   }
 
+  final bool onboardingComplete = prefs?.getBool('onboarding_complete') ?? false;
+
   runApp(
     ProviderScope(
       overrides: [
         if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
       ],
-      child: const MyApp(),
+      child: MyApp(onboardingComplete: onboardingComplete),
     ),
   );
 
@@ -79,7 +82,8 @@ Future<void> _initBackgroundServices(SharedPreferences? prefs) async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool onboardingComplete;
+  const MyApp({super.key, required this.onboardingComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +96,7 @@ class MyApp extends StatelessWidget {
         '/security': (_) => const SecurityScreen(),
         '/__api_test': (_) => const ApiTestScreen(),
       },
-      home: const HomeScreen(),
+      home: onboardingComplete ? const HomeScreen() : const CaregiverSetupScreen(),
     );
   }
 }

@@ -17,7 +17,7 @@ import { generateSummary } from "./ghostwriter.js";
 import { sendTestMessage, sendWhatsApp } from "./whatsapp.js";
 
 // ── Config ───────────────────────────────────────────────────────────────────
-const TEST_PHONE = "918390346801";  // Rohan's number
+const TEST_PHONE = process.env.TEST_PHONE || "##";  // Set TEST_PHONE env var or replace ##
 
 // ── Firebase Setup (using service account file for local testing) ─────────
 let serviceAccount;
@@ -41,7 +41,7 @@ const db = admin.firestore();
 
 // ── Set env vars for WhatsApp (if not already set) ───────────────────────
 if (!process.env.PHONE_ID) {
-  process.env.PHONE_ID = "1130770773459500";
+  process.env.PHONE_ID = "##";
 }
 if (!process.env.WHATSAPP_TOKEN) {
   console.error("❌ WHATSAPP_TOKEN environment variable set karo!");
