@@ -6,38 +6,44 @@ class AIService {
 
   AIService(this._sarvamClient);
 
-  Future<String> reply(String userText, {String languageCode = 'hi-IN', String dialect = 'Hindi', String? pivotInstruction}) async {
+  Future<String> reply(String userText, {String languageCode = 'hi-IN', String dialect = 'Hindi', String? pivotInstruction, String? elderName}) async {
     String dialectInstruction = "";
     if (languageCode == 'hi-IN') {
       if (dialect == 'Marathi') {
-        dialectInstruction = " IMPORTANT: You must start your response with a Marathi filler word like 'Bhau' or 'Kasa kay'.";
+        dialectInstruction = " CRITICAL LANGUAGE RULE: The user selected Marathi dialect. You MUST write your ENTIRE response fluently in warm, natural Marathi language using Devanagari script (e.g. 'कसा काय', 'तुम्ही कसे आहात', 'काळजी करू नका', 'मी तुमच्या सोबत आहे'). Every sentence should be authentic Marathi.";
       } else if (dialect == 'Gujarati') {
-        dialectInstruction = " IMPORTANT: You must start your response with a Gujarati filler word like 'Kem cho', 'Dikra', or 'Mota bhai'.";
+        dialectInstruction = " CRITICAL LANGUAGE RULE: The user selected Gujarati dialect. You MUST write your ENTIRE response fluently in warm, natural Gujarati language (e.g. 'કેમ છો', 'તમે કેમ છો', 'ચિંતા ના કરો', 'હું તમારી સાથે છું'). Every sentence should be authentic Gujarati.";
       } else if (dialect == 'Punjabi') {
-        dialectInstruction = " IMPORTANT: You must start your response with a Punjabi filler word like 'Puttar', 'Ki haal hai', or 'Oye'.";
+        dialectInstruction = " CRITICAL LANGUAGE RULE: The user selected Punjabi dialect. You MUST write your ENTIRE response fluently in warm, natural Punjabi language using Devanagari script (e.g. 'की हाल है', 'ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ', 'ਚਿੰਤਾ ਨਾ ਕਰੋ', 'ਮੈਂ ਤੁਹਾਡੇ ਨਾਲ ਹਾਂ'). Every sentence should be authentic Punjabi.";
       } else if (dialect == 'Bihari') {
-        dialectInstruction = " IMPORTANT: You must start your response with a Bihari filler word like 'Babu', 'Kaisan ba', or 'Bhaiya'.";
+        dialectInstruction = " CRITICAL LANGUAGE RULE: The user selected Bihari/Bhojpuri dialect. You MUST write your ENTIRE response fluently in warm, natural Bihari/Bhojpuri dialect using Devanagari script (e.g. 'कैसन बानी', 'रउआ खातिर हम बानी', 'चिंता मत करीं'). Every sentence should be authentic Bihari.";
       } else if (dialect == 'Haryanvi') {
-        dialectInstruction = " IMPORTANT: You must start your response with a Haryanvi filler word like 'Tau', 'Ke haal se', or 'Chhore'.";
+        dialectInstruction = " CRITICAL LANGUAGE RULE: The user selected Haryanvi dialect. You MUST write your ENTIRE response fluently in warm, natural Haryanvi dialect using Devanagari script (e.g. 'के हाल सै', 'घणी चिंता ना करै', 'मैं तेरे गेल्या सूं'). Every sentence should be authentic Haryanvi.";
+      } else {
+        dialectInstruction = " You MUST write your ENTIRE response in clear, gentle, respectful Hindi using Devanagari script (देवनागरी लिपि). Do NOT use Roman script for Hindi words.";
       }
     }
 
+    final nameInstruction = (elderName != null && elderName.trim().isNotEmpty)
+        ? " The user's name is ${elderName.trim()}. Address them respectfully using their name (e.g., ${elderName.trim()} जी / राव / भाऊ)."
+        : "";
+
     final roohPehchaanInstruction = pivotInstruction != null 
-        ? " ROOH PEHCHAAN PIVOT: $pivotInstruction" 
-        : " ROOH PEHCHAAN: Detect the user's emotional state implicitly and respond naturally.";
+        ? " ROOH PEHCHAAN PIVOT: $pivotInstruction Write this gently in the user's chosen language." 
+        : " ROOH PEHCHAAN: Detect emotional state implicitly and respond naturally.";
 
     final basePrompt = languageCode == 'hi-IN'
-        ? "You are Sneh Saathi, a warm and caring AI companion for elderly Indians. You must respond in a mix of Hindi and English (Hinglish) using Devanagari script for Hindi words. Be extremely kind, patient, and caring."
+        ? "You are Sneh Saathi, a warm and caring AI companion for elderly Indians. Speak with immense warmth, respect, patience, and love."
         : "You are Sneh Saathi, a warm and caring AI companion for elderly Indians. You must respond strictly in clear, simple English. Be extremely kind, patient, and caring.";
 
-    final systemPrompt = "$basePrompt$dialectInstruction$roohPehchaanInstruction";
+    final systemPrompt = "$basePrompt$nameInstruction$dialectInstruction$roohPehchaanInstruction";
 
     final messages = [
       {"role": "system", "content": systemPrompt},
       {"role": "user", "content": userText}
     ];
     
-    final response = await _sarvamClient.chat(messages, languageCode: languageCode);
+    final response = await _sarvamClient.chat(messages, languageCode: languageCode, dialect: dialect);
     return response;
   }
 

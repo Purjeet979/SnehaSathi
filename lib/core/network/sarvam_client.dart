@@ -17,7 +17,7 @@ class SarvamApiException implements Exception {
 
 class SarvamClient {
   static const String _baseUrl = 'https://api.sarvam.ai';
-  static const String _apiKey = '###';
+  static const String _apiKey = String.fromEnvironment('SARVAM_API_KEY', defaultValue: '##');
 
   final Dio _dio;
 
@@ -33,7 +33,7 @@ class SarvamClient {
   ));
 
   void _checkApiKey() {
-    if (_apiKey.trim().isEmpty) {
+    if (_apiKey.trim().isEmpty || _apiKey == '##') {
       throw SarvamApiException(
         'MISSING_API_KEY: Run with --dart-define=SARVAM_API_KEY=your_key',
       );
@@ -52,7 +52,7 @@ class SarvamClient {
     return SarvamApiException('$operation failed: $error');
   }
 
-  Future<String> chat(List<Map<String, String>> messages, {String languageCode = 'hi-IN'}) async {
+  Future<String> chat(List<Map<String, String>> messages, {String languageCode = 'hi-IN', String dialect = 'Hindi'}) async {
     _checkApiKey();
     try {
       final response = await _dio.post(
@@ -66,10 +66,14 @@ class SarvamClient {
 
       final content = response.data['choices']?[0]?['message']?[ 'content'];
       if (content == null || content.toString().trim().isEmpty || content == 'null') {
-        // Language-aware fallback
-        return languageCode == 'hi-IN' 
-          ? "मैं आपकी बात सुन रही हूँ। कृपया और बताइये।" 
-          : "I am listening. Please tell me more.";
+        // Dialect-aware fallback
+        if (languageCode == 'en') return "I am listening. Please tell me more.";
+        if (dialect == 'Marathi') return "मी तुमचे बोलणे ऐकत आहे. कृपया मला अजून सांगा.";
+        if (dialect == 'Gujarati') return "હું તમારી વાત સાંભળી રહ્યો છું. કૃપા કરીને મને વધુ કહો.";
+        if (dialect == 'Punjabi') return "ਮੈਂ ਤੁਹਾਡੀ ਗੱਲ ਸੁਣ ਰਿਹਾ ਹਾਂ। ਕਿਰਪਾ ਕਰਕੇ ਮੈਨੂੰ ਹੋਰ ਦੱਸੋ।";
+        if (dialect == 'Bihari') return "हम रउआ बात सुन तानी। कनि अउरी बताईं।";
+        if (dialect == 'Haryanvi') return "मैं तेरी बात सुणूं सूं। थोड़ी और बता।";
+        return "मैं आपकी बात सुन रही हूँ। कृपया और बताइये।";
       }
       return content.toString();
     } catch (e) {
