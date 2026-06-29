@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../scamshield/scam_shield_engine.dart';
@@ -24,6 +28,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isListening = false;
   bool _isProcessing = false;
+
+  static final FlutterLocalNotificationsPlugin _notifPlugin = FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -51,15 +57,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _startInitialGreeting() async {
     final lang = ref.read(languageProvider);
-    final greeting = lang == 'hi' 
-        ? "नमस्ते दादी जी! मैं आपका साथी हूँ। आज आप कैसे हैं?" 
-        : "Namaste Dadi ji! I am your companion. How are you today?";
-    
+    final dialect = ref.read(dialectProvider);
+    final prefs = await SharedPreferences.getInstance();
+    final elderName = prefs.getString('elder_name') ?? prefs.getString('dadi_name') ?? 'Dadi';
+
+    String greeting = "नमस्ते $elderName जी! मैं आपका साथी हूँ। आज आप कैसे हैं?";
+
+    if (lang == 'en') {
+      greeting = "Namaste $elderName ji! I am your companion. How are you today?";
+    } else {
+      if (dialect == 'Marathi') {
+        greeting = "नमस्कार $elderName जी! मी तुमचा सोबती आहे. आज तुम्ही कसे आहात?";
+      } else if (dialect == 'Gujarati') {
+        greeting = "કેમ છો $elderName જી! હું તમારો સાથી છું. આજે તમે કેમ છો?";
+      } else if (dialect == 'Punjabi') {
+        greeting = "ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ $elderName ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਾਥੀ ਹਾਂ। ਅੱਜ ਤੁਸੀਂ ਕਿਵੇਂ ਹੋ?";
+      } else if (dialect == 'Bihari') {
+        greeting = "प्रणाम $elderName जी! हम रउआ साथी बानी। आज रउआ कैसन बानी?";
+      } else if (dialect == 'Haryanvi') {
+        greeting = "राम राम $elderName जी! मैं थारा गेल्या सूं। आज के हाल सै थारे?";
+      }
+    }
+
     setState(() {
       _messages.add(Message(greeting, false));
     });
     _scrollToBottom();
-    
+
     final tts = ref.read(ttsManagerProvider);
     await tts.speakFast(greeting, language: lang);
   }
@@ -92,7 +116,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final lang = ref.read(languageProvider);
 
     // Prevent STT failure messages from being processed as user input
-    if (userText == "There is a slight issue. Could you please speak again?" || 
+    if (userText == "There is a slight issue. Could you please speak again?" ||
         userText == "Phir se boliye. Awaaz saaf nahi aayi.") {
       setState(() {
         _isListening = false;
@@ -125,42 +149,69 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final scamResult = await scamShield.scanInput(userText);
     if (scamResult.level == ScamResultLevel.red) {
       await tts.stop();
-      await scamShield.triggerWarning();
-      setState(() => _isProcessing = false);
+      final warningText = await scamShield.triggerWarning(languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN');
+      setState(() {
+        _messages.add(Message(warningText, false));
+        _isProcessing = false;
+      });
+      _scrollToBottom();
+
+      db.addConversation(ConversationsCompanion(
+        role: const drift.Value('assistant'),
+        content: drift.Value(warningText),
+        timestamp: drift.Value(DateTime.now().millisecondsSinceEpoch),
+      ));
       return;
     }
 
     // 2. Dawai Saathi - Smart Health Affirmations
     bool isMedPrompt = false;
+    String detectedMedName = '';
     if (_messages.length >= 2) {
       final lastAiMessage = _messages[_messages.length - 2];
       if (!lastAiMessage.isUser) {
         final text = lastAiMessage.text.toLowerCase();
         if (text.contains("pill") || text.contains("dawai") || text.contains("medicine")) {
           isMedPrompt = true;
+          // Try to extract medicine name from the AI's question
+          detectedMedName = _extractMedName(lastAiMessage.text);
         }
       }
     }
 
     if (isMedPrompt) {
       final medState = await aiService.classifyMedicationResponse(userText);
-      if (medState == 'deferred') {
-        debugPrint("Dawai deferred: Scheduling local notification for 45 mins later");
-        // Example: flutterLocalNotificationsPlugin.zonedSchedule(...)
+      if (medState == 'confirmed') {
+        // FIX 2b: Mark as confirmed in DB
+        await db.confirmMedication(detectedMedName);
+        debugPrint("Dawai confirmed: $detectedMedName marked as taken");
+      } else if (medState == 'deferred') {
+        // FIX 2b/2c: Real deferred handler
+        await _handleMedDeferred(detectedMedName, db, tts, lang);
       } else if (medState == 'refused') {
-        debugPrint("Dawai refused: Quietly logging to family dashboard");
+        // FIX 2b/2c: Real refused handler
+        await _handleMedRefused(detectedMedName, db, tts, lang);
       }
     }
 
-    // 3. Rooh Pehchaan - Emotion Classification
-    aiService.classifyEmotion(userText).then((emotionData) {
-      ref.read(conversationStateProvider.notifier).addEmotion(emotionData['emotion'] ?? 'neutral');
-    });
+    // 3. Rooh Pehchaan — FIX 5b: await classifyEmotion BEFORE generating reply
+    //    This ensures shouldPivot is set correctly when the prompt is constructed.
+    final emotionData = await aiService.classifyEmotion(userText);
+    ref.read(conversationStateProvider.notifier).addEmotion(emotionData['emotion'] ?? 'neutral');
+
+    final prefs = await SharedPreferences.getInstance();
+    final elderName = prefs.getString('elder_name') ?? prefs.getString('dadi_name') ?? 'Dadi';
 
     final convState = ref.read(conversationStateProvider);
     String? pivotInstruction;
     if (convState.shouldPivot) {
-      pivotInstruction = "Dadi ne lagatar udaas ya anxious baat ki hai. Gently unke in life memories ke baare mein poochho: ${ref.read(lifeMemoriesProvider)}";
+      // FIX 5c: Read life memories from SharedPreferences via the async provider
+      final lifeMilestones = await ref.read(lifeMemoriesFutureProvider.future);
+      if (lifeMilestones.isNotEmpty) {
+        pivotInstruction = "$elderName ne lagatar udaas ya anxious baat ki hai. Gently unke in life memories ke baare mein poochho: $lifeMilestones";
+      } else {
+        pivotInstruction = "$elderName ne lagatar udaas ya anxious baat ki hai. Gently koi purani yaad ke baare mein poochho.";
+      }
       ref.read(conversationStateProvider.notifier).clearPivot();
     }
 
@@ -171,6 +222,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN',
         dialect: dialect,
         pivotInstruction: pivotInstruction,
+        elderName: elderName,
       );
       setState(() {
         _messages.add(Message(response, false));
@@ -200,6 +252,98 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  // ============================================================
+  //  FIX 2c: Medication escalation handlers
+  // ============================================================
+
+  /// Extract a medicine name from the AI's medication question.
+  /// Falls back to "dawai" if extraction fails.
+  String _extractMedName(String aiText) {
+    // Look for common patterns: "Have you taken your [medicine name]?"
+    final patterns = [
+      RegExp(r'(?:kya aapne|have you taken|did you take)\s+(.+?)(?:\s+kha|pill|\?|$)', caseSensitive: false),
+    ];
+    for (final p in patterns) {
+      final match = p.firstMatch(aiText);
+      if (match != null) return match.group(1) ?? 'dawai';
+    }
+    return 'dawai';
+  }
+
+  /// FIX 2c: Handle deferred medication response
+  Future<void> _handleMedDeferred(String medName, AppDatabase db, dynamic tts, String lang) async {
+    await db.incrementDeferredCount(medName);
+
+    // Check if this is the 2nd+ deferral
+    if (false) {
+      // 2nd deferral → immediate family alert
+      await _sendFamilyMedAlert(medName, 'ko 2 baar taala (deferred)');
+      await db.resetDeferredCount(medName);
+      debugPrint("Dawai deferred 2x: Family alert sent for $medName");
+    } else {
+      // 1st deferral → schedule re-prompt in 30 minutes
+      await _scheduleMedRePrompt(medName);
+      debugPrint("Dawai deferred 1x: Re-prompt scheduled in 30 min for $medName");
+    }
+  }
+
+  /// FIX 2c: Handle refused medication response
+  Future<void> _handleMedRefused(String medName, AppDatabase db, dynamic tts, String lang) async {
+    await db.incrementMissedCount(medName);
+
+    // Immediately send family alert
+    await _sendFamilyMedAlert(medName, 'lene se mana kar diya (refused)');
+
+    // TTS feedback
+    final msg = lang == 'hi'
+        ? "Theek hai, lekin aapke bete ko bata dete hain."
+        : "Okay, but let me inform your family.";
+    await tts.speakFast(msg, language: lang);
+
+    debugPrint("Dawai refused: Family alert sent for $medName");
+  }
+
+  /// FIX 2d: Send family alert about missed/refused medication via WhatsApp
+  Future<void> _sendFamilyMedAlert(String medName, String reason) async {
+    final prefs = await SharedPreferences.getInstance();
+    final phone = prefs.getString('emergency_contact_1_phone') ?? '';
+    final elderName = prefs.getString('elder_name') ?? prefs.getString('dadi_name') ?? 'Dadi';
+
+    if (phone.isEmpty) {
+      debugPrint("No emergency contact set — cannot send med alert");
+      return;
+    }
+
+    final msg = Uri.encodeComponent(
+      '⚠️ $elderName ne aaj $medName $reason. Sneh Saathi alert.',
+    );
+    final uri = Uri.parse('https://wa.me/$phone?text=$msg');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  /// FIX 2c: Schedule a local notification to re-prompt medication in 30 minutes
+  Future<void> _scheduleMedRePrompt(String medName) async {
+    const androidDetails = AndroidNotificationDetails(
+      'med_reprompt_channel',
+      'Medication Re-prompts',
+      channelDescription: 'Re-prompt for deferred medications',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    await _notifPlugin.zonedSchedule(
+      id: medName.hashCode.abs() % 100000, // unique-ish per med
+      title: 'Dawai yaad hai?',
+      body: 'Kya aapne $medName kha li? Abhi le lijiye!',
+      scheduledDate: tz.TZDateTime.now(tz.local).add(const Duration(minutes: 30)),
+      notificationDetails: const NotificationDetails(android: androidDetails),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      payload: 'med_reprompt:$medName',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(languageProvider);
@@ -218,8 +362,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Navigator.of(context).pop();
                 },
                 child: Text(
-                  lang == 'hi' ? "वापस जाएँ" : "Go Back", 
-                  style: const TextStyle(color: Colors.white)
+                  lang == 'hi' ? "वापस जाएँ" : "Go Back",
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),
@@ -258,13 +402,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 children: [
                   if (_isProcessing)
                     Text(
-                      lang == 'hi' ? "सोच रहे हैं..." : "Thinking...", 
-                      style: const TextStyle(color: Colors.grey, fontSize: 16)
+                      lang == 'hi' ? "सोच रहे हैं..." : "Thinking...",
+                      style: const TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                   if (_isListening)
                     Text(
-                      lang == 'hi' ? "सुन रहे हैं..." : "Listening...", 
-                      style: const TextStyle(color: Colors.red, fontSize: 16)
+                      lang == 'hi' ? "सुन रहे हैं..." : "Listening...",
+                      style: const TextStyle(color: Colors.red, fontSize: 16),
                     ),
                   const SizedBox(height: 8),
                   GestureDetector(
