@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/network/sarvam_client.dart';
 import '../../core/tts/text_to_speech_manager.dart';
 
@@ -107,9 +108,17 @@ class ScamShieldEngine {
     return onlineResult;
   }
 
-  Future<void> triggerWarning() async {
-    final warningText = "Dadi, savdhaan rahein! Ye ek fraud ho sakta hai. Apna OTP, password, ya bank details kisi ko na dein.";
+  Future<String> triggerWarning({String languageCode = 'hi-IN'}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final elderName = prefs.getString('elder_name') ?? prefs.getString('dadi_name') ?? 'Dadi';
+    final isHindi = languageCode.startsWith('hi');
+
+    final warningText = isHindi
+        ? "$elderName जी, सावधान रहें! यह एक फ्रॉड हो सकता है। अपना OTP, पासवर्ड, या बैंक डिटेल्स किसी को न दें।"
+        : "$elderName ji, be careful! This could be a scam or fraud. Never share your OTP, password, or bank details with anyone.";
+
     await _ttsManager.speakFast(warningText, emotion: Emotion.anxious);
+    return warningText;
   }
 
   String _normalize(String value) {

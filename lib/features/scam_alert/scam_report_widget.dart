@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/providers.dart';
 
-class ScamReportWidget extends StatelessWidget {
+class ScamReportWidget extends ConsumerWidget {
   const ScamReportWidget({super.key});
 
   Future<void> _triggerRealSOS(BuildContext context) async {
-    // This is the real SOS pathway. In a production app, this would use a globally
-    // configured emergency contact. Here we use a standard emergency SMS intent.
     final Uri smsUri = Uri(
       scheme: 'sms',
-      path: '100', // Or a family member's number
+      path: '100',
       queryParameters: <String, String>{
         'body': 'EMERGENCY: Mujhe dhokha (scam) hua hai ya main khatre mein hu. Kripya turant sampark karein!',
       },
@@ -27,20 +27,27 @@ class ScamReportWidget extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
+    final dialect = ref.watch(dialectProvider);
+
+    String btnLabel = lang == 'en' 
+        ? 'I Was Scammed (Report SOS)'
+        : (dialect == 'Marathi' ? 'माझी फसवणूक झाली (SOS)' : 'मुझे धोखा हुआ (स्कैम SOS)');
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       child: ElevatedButton.icon(
         onPressed: () => _triggerRealSOS(context),
         icon: const Icon(Icons.report_problem, size: 36, color: Colors.white),
-        label: const Text(
-          'Mujhe Dhokha Hua',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+        label: Text(
+          btnLabel,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red.shade800,
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),

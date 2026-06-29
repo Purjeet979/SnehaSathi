@@ -80,11 +80,17 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
   @override
   Widget build(BuildContext context) {
     final lang = ref.watch(languageProvider);
+    final dialect = ref.watch(dialectProvider);
+
+    String barTitle = lang == 'en' ? 'Beware (Scam Protection)' : (dialect == 'Marathi' ? 'सावधान (स्कॅम संरक्षण)' : 'सावधान (स्कैम सुरक्षा)');
+    String sectionTitle = lang == 'en' ? 'Check Message or Call' : (dialect == 'Marathi' ? 'मेसेज किंवा कॉल तपासा' : 'मैसेज या कॉल चेक करें');
+    String hintText = lang == 'en' ? 'Paste SMS here or press mic...' : (dialect == 'Marathi' ? 'येथे SMS पेस्ट करा किंवा माइक दाबा...' : 'यहाँ SMS पेस्ट करें या माइक दबाएं...');
+    String checkBtnText = lang == 'en' ? 'Is This Safe?' : (dialect == 'Marathi' ? 'हे सुरक्षित आहे का?' : 'क्या यह सुरक्षित है?');
     
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E1),
       appBar: AppBar(
-        title: Text(lang == 'hi' ? 'Saavdhan' : 'Beware'),
+        title: Text(barTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.orange.shade800,
         foregroundColor: Colors.white,
       ),
@@ -96,14 +102,14 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
             const ScamReportWidget(),
             const SizedBox(height: 24),
             Text(
-              lang == 'hi' ? 'Message Ya Call Check Karein' : 'Check Message or Call', 
+              sectionTitle, 
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _textController,
               decoration: InputDecoration(
-                hintText: lang == 'hi' ? 'Yahan SMS paste karein ya mic dabayein...' : 'Paste SMS here or use mic...',
+                hintText: hintText,
                 border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: Colors.white,
@@ -136,7 +142,7 @@ class _ScamAlertScreenState extends ConsumerState<ScamAlertScreen> {
               child: _isChecking 
                   ? const CircularProgressIndicator(color: Colors.white)
                   : Text(
-                      lang == 'hi' ? 'Yeh Sahi Hai?' : 'Is this safe?', 
+                      checkBtnText, 
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
                     ),
             ),
