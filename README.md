@@ -40,7 +40,7 @@ Sneh Saathi serves **elderly Indian citizens** who live independently and their 
 ## 🧠 Team & Approach
 
 ### Team Name:  
-`Sneh Saathi`
+`TechNOOBs`
 
 ### Team Members:  
 - **Purjeet** (GitHub: [@Purjeet979](https://github.com/Purjeet979) | Developer & Architect)
@@ -79,6 +79,13 @@ Select if your project participates in any track:
 - [ ] **Expo Track** – Built using Expo  
 - [ ] **Neo4j Track** – Uses AuraDB as primary database  
 - [ ] **Base44 Track** – Prototype/Final Product built using Base44  
+- [x] **Sarvam Track** – Build AI Applications with Sarvam AI
+- [x] **Render Workflows Track** – Build Durable AI Agents & Automated Systems
+
+Provide a short note on how you used the partner technology:
+
+* **Sarvam AI**: We integrated Sarvam AI's speech-to-text (Saaras:v3) and text-to-speech (Mayura:v1) REST APIs to deliver a high-quality, zero-latency regional voice experience in 6 native Indian languages (Hindi, Marathi, Gujarati, Punjabi, Bihari, Haryanvi).
+* **Render Workflows / Automation**: We set up automated background workflows using GitHub Actions and periodic cron jobs. The workflow automatically fires every Sunday, reads aggregated conversation memories from Firebase Firestore, prompts Sarvam LLMs to generate a heartwarming emotional weekly summary, and automatically dispatches it to the family using the WhatsApp Cloud API.
 
 ---
 
