@@ -106,7 +106,7 @@ Provide a short note on how you used the partner technology:
 
 - **Demo Video Link (Mandatory):** [Google Drive Demo Video](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
 - **Deployment Link (Recommended):** [Download Release APK](https://drive.google.com/file/d/1tIymDGrjTo1i-G4TWPakrZtsOMHuLqZH/view?usp=sharing)
-- **Pitch Deck / PPT (Optional):** [Paste link]  
+- **Pitch Deck / PPT (Optional):** [Pitch Deck Presentation](https://drive.google.com/file/d/1tpG9V5NyYdgQQeIT_YTSsuixDulkm38D/view?usp=sharing)
 
 ---
 
