@@ -80,7 +80,7 @@ Select if your project participates in any track:
 - [ ] **Neo4j Track** – Uses AuraDB as primary database  
 - [ ] **Base44 Track** – Prototype/Final Product built using Base44  
 - [x] **Sarvam Track** – Build AI Applications with Sarvam AI
-- [x] **Render Workflows Track** – Build Durable AI Agents & Automated Systems
+- [ ] **Render Workflows Track** – Build Durable AI Agents & Automated Systems
 
 Provide a short note on how you used the partner technology:
 
