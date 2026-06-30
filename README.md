@@ -1,177 +1,157 @@
-<div align="center">
+<img width="4320" height="1440" alt="hh26 main poster 2 with sponsors 3x1 (4320 x 1440 px) (2)" src="https://github.com/user-attachments/assets/c698b2cd-da84-4cb0-9276-125c6a7244aa" />
 
 # 🌸 Sneh Saathi
-### A Voice Companion for Elderly Care
 
-*"Technology should not replace humans — it should bring them closer."*
-
-![Platform](https://img.shields.io/badge/Platform-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Language](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![AI](https://img.shields.io/badge/Sarvam_AI-Hinglish_LLM-FF6B6B?style=for-the-badge)
-![Architecture](https://img.shields.io/badge/Architecture-Riverpod-00897B?style=for-the-badge)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
-
-</div>
+> A voice-first AI companion, safety shield, and medication guide designed to keep independent Indian elders safe, healthy, and connected to their families.
 
 ---
 
-## 📖 About
+## 📌 Problem & Domain
 
-**Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users—especially those living alone.  
-It focuses on **emotional well-being, safety, medication adherence, and family connection**.
+In India, millions of senior citizens live independently while their children work in different cities or countries. These elders face three major challenges:
+1. **Digital Isolation**: Standard modern applications are built for tech-savvy users, featuring small fonts, complex onboarding processes, and English-only menus.
+2. **Health Negligence & Reminders**: Forgetting critical medications (like hypertension or diabetes pills) is common. Traditional alarm systems are easily snoozed or dismissed.
+3. **Digital & Financial Scams**: Seniors are the primary target for phishing, fake bills, and digital arrest threats, often lacking the tools to verify scam messages.
 
-Built from the ground up based on real elderly care pain points in India, Sneh Saathi is an **offline-first, emotionally intelligent companion** with highly accessible UI/UX.
-
----
-
-## ✨ The 3 Laws of Sneh Saathi UX
-
-| # | Law |
-|---|-----|
-| 1 | **One Screen, One Job** |
-| 2 | **Every Error Must Self-Resolve** |
-| 3 | **The App Must Never Feel Like Technology** |
-
----
-
-## 🚀 Key Features
-
-### 📱 Interface & Accessibility
-
-- **Ultra-Simple Radial Home Screen** — Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan) anchored by a prominent app logo, clear typography, and a unified **Navbar Language Dropdown** allowing instant switching between English, Hindi, Marathi, Gujarati, Punjabi, Bihari, and Haryanvi.
-- **Dual-Path Caregiver Setup Mode** — SOLVES the elderly setup barrier! Features Path A for adult children/caregivers with 10-digit mobile number validation and smooth keyboard dismiss, and Path B for voice-guided setup by elders. Caregivers can also re-trigger the setup wizard anytime from Settings.
-- **Accessible Aesthetics & Full Localization** — High-contrast warm cream palette with large Material 3 typography. Every single dashboard (Family Peace-of-Mind Dashboard, Night Safety Check, Scam Shield) and text bubble is dynamically localized into authentic **Devanagari script (देवनागरी लिपि)** and regional dialects.
-
-- **Voice-First Onboarding** — No email, no password, no typing. A 3-step guided voice setup captures name, family contacts, and medication routine.
-
-### 🌟 Signature Features
-
-- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated. This dramatically reduces perceived latency, making it feel just like a real phone call.
-- **🌏 Full Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Rather than just filler words, Sarvam AI now converses fluently in the full regional language chosen by the user, strictly adhering to gentle Devanagari script for Indian languages.
-- **📝 Parivaar Bridge (Daily Digest & Ghostwriter)** — Conversations are stored locally on-device (Drift SQLite). Only AI-generated summaries — never raw conversation rows — are shared. Users can toggle between **Daily Digest (Rozana)** and **Weekly Summary** in Settings. Integrates one-tap WhatsApp summary forwarding.
-- **🚨 Native SOS & Silent SMS Fallback** — Built for budget Indian smartphones (Redmi, Realme, Vivo, Samsung). Uses a native Android Kotlin `SmsManager` MethodChannel to dispatch silent emergency SMS with location coordinates, backed by an immediate `url_launcher` SMS composer fallback if OEM permission blockers intercept silent send.
-- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — Tracks emotional tone across conversation turns. If sadness or anxiety markers appear, the AI shifts to a gentler pace and introduces a memory prompt from her stated life milestones, keeping memories alive.
-- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check suspicious messages or calls. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts and real-time screen warning bubbles alongside TTS audio alerts.
-- **💊 Dawai Saathi** — Proactively tracks medication adherence. Understands non-committal responses (*"baad mein," "thodi der mein"*) and intelligently escalates unconfirmed medicines.
+**Themes Selected (at least one):**
+- [x] Human Experience & Productivity  
+- [ ] Climate & Sustainability Systems  
+- [x] HealthTech & Bio Platforms  
+- [ ] Learning & Knowledge Systems  
+- [ ] Work, Finance & Digital Economy  
+- [ ] Infrastructure, Mobility & Smart Systems  
+- [x] Trust, Identity & Security  
+- [ ] Media, Social & Interactive Platforms  
+- [ ] Public Systems, Governance and Civic Tech  
+- [ ] Developer Tools & Software Infrastructure  
 
 ---
 
-## 🔄 App Workflow
+## 🎯 Objective
 
-```mermaid
-graph TD
-    User((Elderly User)) -->|Speaks| STT[speech_to_text]
-    STT -->|Transcribed Text| AI[AIService Core]
+Sneh Saathi serves **elderly Indian citizens** who live independently and their **worried family members** who want to ensure their safety from afar.
 
-    AI -->|Check Input| Scam[Scam Shield Engine]
-    Scam -- Fraud Detected --> Warning[Loud Warning Trigger]
-    Warning --> TTS[flutter_tts]
-
-    Scam -- Safe Input --> Emotion[Rooh Pehchaan\nEmotion & Nostalgia Engine]
-    Emotion --> Memory[Memory Repository]
-
-    Memory <-->|Retrieve/Store Context| DriftDB[(Drift SQLite)]
-    Memory --> LLM[Sarvam AI Client]
-
-    LLM -->|Generates Hinglish/Regional Response| TTS
-    TTS -->|Speaks Response| User
-
-    subgraph Background Workers
-        WorkMgr[workmanager] --> MedsWorker[MedicationReminder]
-        WorkMgr --> SecWorker[SecurityCheckReminder]
-        WorkMgr --> GhostWorker[GhostwriterWorker]
-
-        GhostWorker -->|Fetch 7 Days Memory| DriftDB
-        GhostWorker -->|Generate Summary| LLM
-        GhostWorker -->|Send to Family| WhatsApp[url_launcher]
-    end
-```
+- **The Target Users**: Indian senior citizens who may not speak English fluently, prefer speaking over typing, or struggle with complex mobile layouts.
+- **The Pain Point**: A lack of dedicated, empathetic tools that protect elders from cyber threats, keep track of daily medications, and share status reports with children without violating the elder's privacy.
+- **The Value**: Sneh Saathi acts as a warm, dialect-fluent voice companion that speaks their language (Hindi, Marathi, Gujarati, etc.), monitors safety and health, blocks scams, and keeps the family in the loop.
 
 ---
 
-## 🧩 Architecture & Tech Stack
+## 🧠 Team & Approach
 
-Sneh Saathi follows **Clean Architecture + Riverpod**, optimized for reliability, modularity, and offline resilience.
+### Team Name:  
+`Sneh Saathi`
 
-### 📱 Frontend
+### Team Members:  
+- **Purjeet** (GitHub: [@Purjeet979](https://github.com/Purjeet979) | Developer & Architect)
 
-| Technology | Usage |
-|---|---|
-| Flutter & Dart | Cross-platform UI (Android/iOS) |
-| Riverpod | State management + dependency injection |
-| Flutter Plugins | Audio, permissions, notifications, device integrations |
-
-### ⚙️ Core Systems (Offline-First)
-
-| Technology | Usage |
-|---|---|
-| Drift (SQLite) | Local persistence: memories, conversations, medications |
-| WorkManager | Reliable background tasks, survives reboots |
-| SharedPreferences | Lightweight user settings (voice speed, contacts, dialect prefs) |
-
-### 🤖 AI & NLP
-
-| Technology | Usage |
-|---|---|
-| Sarvam AI | Hinglish + regional dialect LLM |
-| flutter_tts | On-device speech output with rate/pitch tuning |
-| Saavdhan Engine | Hybrid rule-based + AI-assisted fraud detection |
-
-### 🟢 Google Technologies
-
-| Technology | Usage |
-|---|---|
-| Firebase Firestore | Cloud backup for memories and summaries |
-| Firebase Storage | Cloud media/audio storage |
-| TensorFlow Lite (LiteRT) | On-device embeddings/classification (prepared) |
+### Your Approach:
+* **Empathy-Driven Design**: Instead of packing the app with text and tabs, we formulated the **3 Laws of Sneh Saathi UX**: *One Screen, One Job*, *Every Error Must Self-Resolve*, and *The App Must Never Feel Like Technology*. The core navigation is a scroll-free radial layout anchored by a prominent central button.
+* **Dialect-First AI**: Standard translation APIs fail to capture the warmth of regional Indian dialects. We integrated **Sarvam AI**'s speech models, enabling the companion to converse fluently in regional scripts (Hindi, Marathi, Gujarati, Punjabi, Bihari, and Haryanvi).
+* **Robust Hardware Integration**: Budget Android devices (Redmi, Samsung) frequently throttle background tasks and block silent permissions. We bypassed these limitations by:
+  - Designing a **Relative Noise-Floor Calibration** routine for STT that adapts to local ambient noise (fans, traffic).
+  - Writing a native Kotlin **MethodChannel** to dispatch silent emergency SMS with coordinates, fallbacking to the system composer if needed.
+  - Adding a **Completer with safety timeouts** to synchronize speech playbacks on physical TTS systems.
 
 ---
 
-## 📁 Folder Structure
+## 🛠️ Tech Stack
 
-```text
-lib/
-├── core/                  # Network observers, TTS, clients, global helpers
-├── data/
-│   ├── local/             # Drift DB, DAOs, entities, SharedPreferences
-│   └── repository/        # Repositories + RAG implementation
-├── features/
-│   ├── chat/              # Chat interface
-│   ├── family/            # Ghostwriter worker + Family Hub
-│   ├── home/              # Radial Home Screen
-│   ├── medication/        # Medication reminder worker
-│   ├── scam_alert/        # Scam detection UI
-│   ├── scamshield/        # Scam detection logic
-│   └── security/          # Security check worker
-└── main.dart              # App entry point
-```
+### Core Technologies Used:
+- **Frontend**: Flutter & Dart (State Management via Riverpod)
+- **Backend & Cloud**: Firebase Firestore, Firebase Storage
+- **Database**: Drift (SQLite) for on-device persistence
+- **APIs & LLMs**: Sarvam AI (Text-to-Speech & Speech-to-Text)
+- **Background Jobs**: Android WorkManager (Periodic sync, medication workers)
+
+### Additional Technologies Used (Optional):
+- [x] AI / ML (Sarvam Llama-based Mayura & Saaras Models)  
+- [ ] Web3 / Blockchain  
+- [x] Cyber Security (Saavdhan Scam Shield Rules & Analysis) 
+- [x] Cloud (Firebase Infrastructure & GitHub Actions Workflows)  
 
 ---
 
-## ⚙️ Background Workers
+## 🏆 Sponsored Track (Optional)
 
-| Worker | Trigger | Action |
-|---|---|---|
-| 💊 `MedicationReminderWorker` | Daily schedule | Voice reminder + Hindi/English response understanding |
-| 🔒 `SecurityReminderWorker` | Evening schedule | Door/gas/safety checklist prompt |
-| 📬 `GhostwriterWorker` | Every 7 days | Read memories → generate summary → send to family |
+Select if your project participates in any track:
 
----
-
-## 🎥 Demo & Links
-
-- 🔗 **GitHub Repository:** [https://github.com/Purjeet979/SnehaSathi](https://github.com/Purjeet979/SnehaSathi)
-- 🎥 **Demo Video (3 min):** [https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
+- [ ] **Expo Track** – Built using Expo  
+- [ ] **Neo4j Track** – Uses AuraDB as primary database  
+- [ ] **Base44 Track** – Prototype/Final Product built using Base44  
 
 ---
 
-## 👥 Team
+## ✨ Key Features
 
-**Developer:** Purjeet  
-**Submission:** Hackathon Project
+- 🎤 **Zero-Latency Voice Companion**: Converses naturally in 6 regional languages (Hindi, Marathi, Gujarati, Punjabi, Bihari, Haryanvi). Bypasses loading screens by streaming Text-to-Speech sentence-by-sentence.
+- 💊 **Dawai Saathi (Smart Medication Tracker)**: Reminds elders about pills. Understands real-world answers like *"baad mein"* or *"thodi der mein"* and schedules a follow-up re-prompt instead of marking it complete.
+- 🛡️ **Saavdhan (Scam Shield)**: Real-time scan of suspicious text messages, notifications, or voice clips using hybrid AI + rule-based checks, triggering visual red alerts and audio warnings.
+- 🚨 **Native SOS (Kotlin MethodChannel)**: A physical/virtual emergency trigger. Instantly gets the device's GPS coordinates and dispatches a silent SMS to the emergency contacts, fallbacking to the native SMS app if needed.
+- 🔒 **Raat Ki Safety Check**: A guided regional voice checklist (closing doors, windows, gas knob check) to keep elders safe and give them peace of mind at night.
+- 🕊️ **Parivaar Bridge & GitHub Actions Automation**: 
+  - **App-Based**: Single-tap daily update forwarding via WhatsApp.
+  - **Cloud-Based**: A scheduled **GitHub Actions Cron Workflow** runs every Sunday, fetches weekly summaries from Firestore, and automatically sends a weekly digest to children using the **WhatsApp Cloud API**.
 
 ---
 
-<div align="center">
-🌸 <em>Built with care for those who shaped us.</em>
-</div>
+## 📽️ Demo & Deliverables
+
+- **Demo Video Link (Mandatory):** [Google Drive Demo Video](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
+- **Deployment Link (Recommended):** [GitHub Repository Link](https://github.com/Purjeet979/SnehaSathi)
+- **Pitch Deck / PPT (Optional):** [Paste link]  
+
+---
+
+## ✅ Tasks & Bonus Checklist
+
+- [ ] All team members completed the mandatory social task  
+- [ ] Bonus Task 1 – Badge sharing  
+- [ ] Bonus Task 2 – Blog/article  
+
+---
+
+## 🧪 How to Run the Project
+
+### Requirements:
+- **Flutter SDK**: `>=3.3.0`
+- **Dart**: `>=3.3.0`
+- **Android Studio / VS Code** with Flutter extensions installed.
+- **Sarvam AI Subscription Key** (For TTS & STT capabilities).
+
+### Local Setup:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Purjeet979/SnehaSathi.git
+   cd SnehaSathi
+   ```
+2. Fetch dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Run the project (ensure your physical Android/iOS device or emulator is connected):
+   ```bash
+   flutter run --dart-define=SARVAM_API_KEY=your_sarvam_api_key_here
+   ```
+
+---
+
+## 🧬 Future Scope
+
+- 🗣️ **More Regional Dialects**: Expanding to South Indian languages (Tamil, Telugu, Kannada, Malayalam).
+- 🧠 **TensorFlow Lite (LiteRT)**: Moving the scam detection engine fully offline via localized TFLite models, making it secure and zero-cost.
+- 🩺 **IoT Wearables Integration**: Automatically pulling heart-rate or fall-detection data from smartwatches to trigger the native SOS coordinates message automatically.
+
+---
+
+## 📎 Resources / Credits
+
+- **Sarvam AI**: For providing high-quality regional Indian speech and language LLMs.
+- **Drift (SQLite)**: For high-performance offline database persistence.
+- **WorkManager**: For reliable background job scheduling on Android.
+
+---
+
+## 🏁 Final Words
+
+Building Sneh Saathi was an incredibly meaningful journey. Integrating real-time speech processing and ensuring compatibility with budget devices brought several engineering challenges (from Android audio focus bugs to MIUI TTS speech interruptions). Ultimately, seeing the app run smoothly on a physical phone and knowing it can help protect our elders was the greatest breakthrough. 🧡
