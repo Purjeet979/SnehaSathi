@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/services.dart';
 import '../../core/providers.dart';
 import '../../data/local/database.dart';
 import '../scamshield/scam_shield_engine.dart';
@@ -28,6 +29,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isListening = false;
   bool _isProcessing = false;
+  bool _isMicBusy = false;
+  String? _currentSpeakingSessionId;
 
   static final FlutterLocalNotificationsPlugin _notifPlugin = FlutterLocalNotificationsPlugin();
 
@@ -39,6 +42,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
+    _currentSpeakingSessionId = null;
+    ref.read(ttsManagerProvider).stop();
     _scrollController.dispose();
     super.dispose();
   }
@@ -85,29 +90,62 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToBottom();
 
     final tts = ref.read(ttsManagerProvider);
+    _currentSpeakingSessionId = DateTime.now().toIso8601String();
     await tts.speakFast(greeting, language: lang);
   }
 
-  void _toggleListening() async {
-    final voiceHelper = ref.read(voiceInputProvider);
-    final tts = ref.read(ttsManagerProvider);
-    final lang = ref.read(languageProvider);
+  Future<void> _toggleListening() async {
+    // Mutex guard: if a previous tap is still processing, ignore this tap.
+    if (_isMicBusy) {
+      debugPrint('[MIC] Tap ignored — previous tap still processing');
+      return;
+    }
+    _isMicBusy = true;
+    debugPrint('[MIC] _toggleListening called, _isListening=$_isListening');
 
-    await tts.stop();
+    try {
+      final voiceHelper = ref.read(voiceInputProvider);
+      final tts = ref.read(ttsManagerProvider);
+      final lang = ref.read(languageProvider);
 
-    if (_isListening) {
-      await voiceHelper.stopListening(
-        () => setState(() => _isListening = false),
-        _handleVoiceResult,
-        lang == 'hi' ? 'hi-IN' : 'en-IN',
-      );
-    } else {
-      await voiceHelper.startListening(
-        onStart: () => setState(() => _isListening = true),
-        onStop: () => setState(() => _isListening = false),
-        onResult: _handleVoiceResult,
-        languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN',
-      );
+      // Tactile vibration & system audio click cue
+      HapticFeedback.mediumImpact();
+      SystemSound.play(SystemSoundType.click);
+
+      // Stop any ongoing TTS playback before toggling mic
+      _currentSpeakingSessionId = null;
+      debugPrint('[MIC] Stopping TTS...');
+      await tts.stop();
+      debugPrint('[MIC] TTS stopped.');
+
+      if (_isListening) {
+        debugPrint('[MIC] Stopping voice recording...');
+        await voiceHelper.stopListening(
+          () => setState(() => _isListening = false),
+          _handleVoiceResult,
+          lang == 'hi' ? 'hi-IN' : 'en-IN',
+        );
+        debugPrint('[MIC] Voice recording stopped.');
+      } else {
+        debugPrint('[MIC] Starting voice recording...');
+        await voiceHelper.startListening(
+          onStart: () {
+            debugPrint('[MIC] Recording started (onStart callback)');
+            setState(() => _isListening = true);
+          },
+          onStop: () {
+            debugPrint('[MIC] Recording stopped (onStop callback)');
+            setState(() => _isListening = false);
+          },
+          onResult: _handleVoiceResult,
+          languageCode: lang == 'hi' ? 'hi-IN' : 'en-IN',
+        );
+      }
+    } catch (e) {
+      debugPrint('[MIC] ERROR in _toggleListening: $e');
+    } finally {
+      _isMicBusy = false;
+      debugPrint('[MIC] _isMicBusy released');
     }
   }
 
@@ -124,6 +162,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         _messages.add(Message(userText, false)); // Assistant message
       });
       _scrollToBottom();
+      _currentSpeakingSessionId = DateTime.now().toIso8601String();
       await tts.speakFast(userText, language: lang);
       return;
     }
@@ -237,8 +276,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ));
 
       // Zero-Latency Voice Mode (Simulated via chunking)
+      final sessionId = DateTime.now().toIso8601String();
+      _currentSpeakingSessionId = sessionId;
+
       final sentences = response.split(RegExp(r'(?<=[।.!?])\s+'));
       for (final sentence in sentences) {
+        if (_currentSpeakingSessionId != sessionId) break;
+        if (_isListening) break;
         if (sentence.trim().isNotEmpty) {
           await tts.speakFast(sentence, language: lang);
         }
@@ -411,12 +455,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       style: const TextStyle(color: Colors.red, fontSize: 16),
                     ),
                   const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _toggleListening,
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: _isListening ? Colors.red : Colors.green,
-                      child: const Icon(Icons.mic, color: Colors.white, size: 40),
+                  SizedBox(
+                    width: 88,
+                    height: 88,
+                    child: Material(
+                      color: _isListening ? Colors.red : Colors.green,
+                      shape: const CircleBorder(),
+                      elevation: 4,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: _isMicBusy ? null : _toggleListening,
+                        splashColor: Colors.white24,
+                        child: const Center(
+                          child: Icon(Icons.mic, color: Colors.white, size: 40),
+                        ),
+                      ),
                     ),
                   ),
                 ],
