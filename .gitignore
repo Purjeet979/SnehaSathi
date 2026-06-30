@@ -61,3 +61,5 @@ key.properties
 # Local markdown plans
 SNEH_SAATHI_UIUX_AND_WOW_FEATURES.md
 SnehaSathi_Upgrade_Plan.md
+requirements.md
+test_sarvam.js
