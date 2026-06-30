@@ -17,7 +17,7 @@
 
 ## 📖 About
 
-**Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users — especially those living alone. It focuses on **emotional well-being, safety, medication reminders, and family connection** using simple voice interactions and regional dialects, instead of complex touch interfaces.
+**Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users — especially those living alone. It focuses on **emotional well-being, safety, medication reminders, and family connection**.
 
 Built from the ground up based on a deep analysis of Indian elderly pain points, Sneh Saathi is an **offline-first, emotionally intelligent companion** with a highly accessible UI/UX.
 
@@ -43,17 +43,17 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 ### 🌟 Unique "Wow Factor" Features
 
-- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, rather than waiting for the full response. This dramatically reduces perceived latency, making it feel just like a real phone call.
+- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, rather than waiting for the full response. This dramatically improves naturalness and removes robotic delay.
 
-- **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*). The dialect is set once during onboarding by the caregiver, and Dadi never has to configure it herself — it just sounds right from the first sentence.
+- **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*). The dialect level is adaptive and configurable by family.
 
-- **📝 Parivaar Bridge (Weekly Ghostwriter)** — Conversations are kept completely on-device for maximum privacy. The app generates and sends the WhatsApp summary locally, triggered by a scheduled background job inside the app itself using **Sarvam AI** to craft a heartwarming Hinglish summary for the family.
+- **📝 Parivaar Bridge (Weekly Ghostwriter)** — Conversations are kept completely on-device for maximum privacy. The app generates and sends the WhatsApp summary locally, triggered by a scheduled worker.
 
-- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — LLM context window tracks emotional tone across the conversation. If sadness or anxiety markers appear, the AI shifts to a gentler pace and introduces a memory prompt from her stated life milestones (set during onboarding), keeping her memories alive.
+- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — LLM context window tracks emotional tone across the conversation. If sadness or anxiety markers appear, the AI shifts to a gentler pace and nostalgic prompts to restore comfort.
 
-- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts. Amber state is shown when the offline check found no match but online verification couldn't run — never shows a false green.
+- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts. Amber state is intentionally cautious to protect vulnerable users.
 
-- **💊 Dawai Saathi** — Proactively asks "Have you taken your blood pressure pill?" It understands partial responses (*"baad mein," "thodi der mein"*) and intelligently re-prompts once after a set delay rather than marking it done on a non-committal answer.
+- **💊 Dawai Saathi** — Proactively asks "Have you taken your blood pressure pill?" It understands partial responses (*"baad mein," "thodi der mein"*) and intelligently re-prompts once after a set interval.
 
 ---
 
@@ -158,7 +158,7 @@ lib/
 ## 🎥 Demo & Links
 
 - 🔗 **GitHub:** [github.com/Purjeet979/HackWins](https://github.com/Purjeet979/HackWins)
-- 🎥 **Demo Video (3 min):** [Google Drive](https://drive.google.com/drive/folders/17j_PTlFP8RmSxmHQ0Uu3O9PmVIW0VLa6?usp=sharing)
+- 🎥 **Demo Video (3 min):** [Google Drive](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
 
 ---
 
