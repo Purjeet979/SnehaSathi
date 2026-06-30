@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -79,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         value: summaryFrequency,
+                        isExpanded: true,
                         decoration: const InputDecoration(labelText: 'Auto-Summary Frequency', border: OutlineInputBorder()),
                         items: const [
                           DropdownMenuItem(value: 'Daily', child: Text('Daily Digest (Rozana)')),
@@ -387,7 +389,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
         ],
       ),
       child: ElevatedButton(
-        onPressed: () => _triggerSOS(context, ref),
+        onPressed: () {
+          HapticFeedback.vibrate();
+          _triggerSOS(context, ref);
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -580,6 +585,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: () {
+                HapticFeedback.lightImpact();
+                SystemSound.play(SystemSoundType.click);
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => action['route'])
                 );
