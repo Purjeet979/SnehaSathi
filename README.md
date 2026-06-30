@@ -112,9 +112,9 @@ Provide a short note on how you used the partner technology:
 
 ## ✅ Tasks & Bonus Checklist
 
-- [ ] All team members completed the mandatory social task  
-- [ ] Bonus Task 1 – Badge sharing  
-- [ ] Bonus Task 2 – Blog/article  
+- [x] All team members completed the mandatory social task
+- [x] Bonus Task 1 – Badge sharing
+- [x] Bonus Task 2 – Blog/article
 
 ---
 
