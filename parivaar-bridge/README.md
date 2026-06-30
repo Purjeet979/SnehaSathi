@@ -2,11 +2,16 @@
 
 > *Har hafte, buzurgon ki baatein... unke pyaaron tak.*
 
+> **⚠️ PRIVACY NOTE (Updated):** Raw conversations are NO LONGER synced to Firebase.
+> Summaries are now generated **on-device** by the Flutter app's WorkManager using Sarvam AI.
+> Only the generated summary is pushed to `weeklySummaries/` in Firestore.
+> The cloud script below is a **legacy/backup approach** — the primary flow is now fully on-device.
+
 Ye system automatically:
-1. **Firestore se** pichle 7 din ki conversations padhta hai
-2. **Sarvam AI se** emotional, heart-touching summary generate karta hai
+1. ~~Firestore se pichle 7 din ki conversations padhta hai~~ **(Deprecated — conversations stay on-device)**
+2. **On-device Sarvam AI se** emotional, heart-touching summary generate karta hai
 3. **WhatsApp Cloud API se** family members ko bhejta hai
-4. **Firestore mein** summary save karta hai (records ke liye)
+4. **Firestore mein** summary save karta hai (records ke liye — not raw conversations)
 
 Poora system **free tier** pe chalta hai — GitHub Actions + Firebase + Sarvam AI + WhatsApp.
 

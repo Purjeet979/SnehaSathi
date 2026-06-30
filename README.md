@@ -38,34 +38,21 @@ Built from the ground up based on real elderly care pain points in India, Sneh S
 
 ### 📱 Interface & Accessibility
 
-- **Ultra-Simple Radial Home Screen**  
-  Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan), optimized for quick access and low cognitive load.
+- **Ultra-Simple Radial Home Screen** — Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan) anchored by a prominent app logo, clear typography, and a unified **Navbar Language Dropdown** allowing instant switching between English, Hindi, Marathi, Gujarati, Punjabi, Bihari, and Haryanvi.
+- **Dual-Path Caregiver Setup Mode** — SOLVES the elderly setup barrier! Features Path A for adult children/caregivers with 10-digit mobile number validation and smooth keyboard dismiss, and Path B for voice-guided setup by elders. Caregivers can also re-trigger the setup wizard anytime from Settings.
+- **Accessible Aesthetics & Full Localization** — High-contrast warm cream palette with large Material 3 typography. Every single dashboard (Family Peace-of-Mind Dashboard, Night Safety Check, Scam Shield) and text bubble is dynamically localized into authentic **Devanagari script (देवनागरी लिपि)** and regional dialects.
 
-- **Voice-First Onboarding**  
-  No email, no password, no typing. A 3-step guided voice setup captures name, family contacts, and medication routine.
-
-- **Accessible Aesthetics**  
-  Warm high-contrast palette, large typography, and clear visual hierarchy tuned for aging eyes (Material 3).
+- **Voice-First Onboarding** — No email, no password, no typing. A 3-step guided voice setup captures name, family contacts, and medication routine.
 
 ### 🌟 Signature Features
 
-- **⚡ Call-Like Voice Experience**  
-  Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, making interactions feel natural and alive.
-
-- **🌏 Regional Dialect Engine (Sarvam AI)**  
-  Supports Marathi, Gujarati, Punjabi, Bihari, and Haryanvi conversational flavor with contextual fillers (*Bhau, Kasa kay, Kem cho, Puttar, Babu*) for familiarity and comfort.
-
-- **📝 Parivaar Bridge (Weekly Ghostwriter)**  
-  Private on-device memory summarization, then optional weekly family-ready WhatsApp updates generated automatically.
-
-- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine**  
-  Tracks emotional tone over time. If sadness/anxiety markers appear, assistant response style shifts to gentler pacing, comfort-first language, and nostalgia prompts.
-
-- **🛡️ Saavdhan (Scam Alert & Shield)**  
-  Dedicated scam-check mode for suspicious calls/messages with hybrid offline+online analysis and clear **Green / Amber / Red** confidence signaling.
-
-- **💊 Dawai Saathi**  
-  Proactive medication assistant that understands real-world replies like *“baad mein”* or *“thodi der mein”* and performs smart follow-up reminders.
+- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated. This dramatically reduces perceived latency, making it feel just like a real phone call.
+- **🌏 Full Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Rather than just filler words, Sarvam AI now converses fluently in the full regional language chosen by the user, strictly adhering to gentle Devanagari script for Indian languages.
+- **📝 Parivaar Bridge (Daily Digest & Ghostwriter)** — Conversations are stored locally on-device (Drift SQLite). Only AI-generated summaries — never raw conversation rows — are shared. Users can toggle between **Daily Digest (Rozana)** and **Weekly Summary** in Settings. Integrates one-tap WhatsApp summary forwarding.
+- **🚨 Native SOS & Silent SMS Fallback** — Built for budget Indian smartphones (Redmi, Realme, Vivo, Samsung). Uses a native Android Kotlin `SmsManager` MethodChannel to dispatch silent emergency SMS with location coordinates, backed by an immediate `url_launcher` SMS composer fallback if OEM permission blockers intercept silent send.
+- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — Tracks emotional tone across conversation turns. If sadness or anxiety markers appear, the AI shifts to a gentler pace and introduces a memory prompt from her stated life milestones, keeping memories alive.
+- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check suspicious messages or calls. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts and real-time screen warning bubbles alongside TTS audio alerts.
+- **💊 Dawai Saathi** — Proactively tracks medication adherence. Understands non-committal responses (*"baad mein," "thodi der mein"*) and intelligently escalates unconfirmed medicines.
 
 ---
 
