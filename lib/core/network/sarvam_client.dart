@@ -33,7 +33,7 @@ class SarvamClient {
   ));
 
   void _checkApiKey() {
-    if (_apiKey.trim().isEmpty || _apiKey == '##') {
+    if (_apiKey.trim().isEmpty) {
       throw SarvamApiException(
         'MISSING_API_KEY: Run with --dart-define=SARVAM_API_KEY=your_key',
       );
