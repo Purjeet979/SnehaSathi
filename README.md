@@ -17,9 +17,10 @@
 
 ## 📖 About
 
-**Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users — especially those living alone. It focuses on **emotional well-being, safety, medication reminders, and family connection**.
+**Sneh Saathi** is a warm, voice-first AI companion designed for elderly Indian users—especially those living alone.  
+It focuses on **emotional well-being, safety, medication adherence, and family connection**.
 
-Built from the ground up based on a deep analysis of Indian elderly pain points, Sneh Saathi is an **offline-first, emotionally intelligent companion** with a highly accessible UI/UX.
+Built from the ground up based on real elderly care pain points in India, Sneh Saathi is an **offline-first, emotionally intelligent companion** with highly accessible UI/UX.
 
 ---
 
@@ -37,23 +38,34 @@ Built from the ground up based on a deep analysis of Indian elderly pain points,
 
 ### 📱 Interface & Accessibility
 
-- **Ultra-Simple Radial Home Screen** — Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan) anchored by an accessible interface
-- **Voice-First Onboarding** — No emails, no passwords, no typing. A 3-step voice conversation sets up name, family contacts, and medications
-- **Accessible Aesthetics** — High-contrast warm cream palette with large typography optimized for aging eyes (Material 3)
+- **Ultra-Simple Radial Home Screen**  
+  Scroll-free layout with core actions (Talk, Meds, Family, Security, Saavdhan), optimized for quick access and low cognitive load.
 
-### 🌟 Unique "Wow Factor" Features
+- **Voice-First Onboarding**  
+  No email, no password, no typing. A 3-step guided voice setup captures name, family contacts, and medication routine.
 
-- **⚡ Call-Like Voice Experience** — Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, rather than waiting for the full response. This dramatically improves naturalness and removes robotic delay.
+- **Accessible Aesthetics**  
+  Warm high-contrast palette, large typography, and clear visual hierarchy tuned for aging eyes (Material 3).
 
-- **🌏 Regional Dialect Engine (Sarvam AI)** — Speaks Marathi, Gujarati, Punjabi, Bihari, and Haryanvi. Dynamically injects regional filler words (*Bhau, Kasa kay, Kem cho, Puttar, Babu*). The dialect level is adaptive and configurable by family.
+### 🌟 Signature Features
 
-- **📝 Parivaar Bridge (Weekly Ghostwriter)** — Conversations are kept completely on-device for maximum privacy. The app generates and sends the WhatsApp summary locally, triggered by a scheduled worker.
+- **⚡ Call-Like Voice Experience**  
+  Streaming TTS starts speaking the first sentence while the rest of the response is still being generated, making interactions feel natural and alive.
 
-- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine** — LLM context window tracks emotional tone across the conversation. If sadness or anxiety markers appear, the AI shifts to a gentler pace and nostalgic prompts to restore comfort.
+- **🌏 Regional Dialect Engine (Sarvam AI)**  
+  Supports Marathi, Gujarati, Punjabi, Bihari, and Haryanvi conversational flavor with contextual fillers (*Bhau, Kasa kay, Kem cho, Puttar, Babu*) for familiarity and comfort.
 
-- **🛡️ Saavdhan (Scam Alert & Shield)** — A dedicated safe space to check if a message/call is a scam. Uses hybrid offline/online checks with clear Green/Amber/Red visual alerts. Amber state is intentionally cautious to protect vulnerable users.
+- **📝 Parivaar Bridge (Weekly Ghostwriter)**  
+  Private on-device memory summarization, then optional weekly family-ready WhatsApp updates generated automatically.
 
-- **💊 Dawai Saathi** — Proactively asks "Have you taken your blood pressure pill?" It understands partial responses (*"baad mein," "thodi der mein"*) and intelligently re-prompts once after a set interval.
+- **💛 Rooh Pehchaan — Emotional & Nostalgia Engine**  
+  Tracks emotional tone over time. If sadness/anxiety markers appear, assistant response style shifts to gentler pacing, comfort-first language, and nostalgia prompts.
+
+- **🛡️ Saavdhan (Scam Alert & Shield)**  
+  Dedicated scam-check mode for suspicious calls/messages with hybrid offline+online analysis and clear **Green / Amber / Red** confidence signaling.
+
+- **💊 Dawai Saathi**  
+  Proactive medication assistant that understands real-world replies like *“baad mein”* or *“thodi der mein”* and performs smart follow-up reminders.
 
 ---
 
@@ -92,55 +104,59 @@ graph TD
 
 ## 🧩 Architecture & Tech Stack
 
-Sneh Saathi uses **Clean Architecture** with **Riverpod** optimized for cross-platform offline resilience.
+Sneh Saathi follows **Clean Architecture + Riverpod**, optimized for reliability, modularity, and offline resilience.
 
 ### 📱 Frontend
+
 | Technology | Usage |
 |---|---|
-| Flutter & Dart | Declarative UI for Android/iOS |
-| Riverpod | State Management & Dependency Injection |
-| Flutter Plugins | Localized Audio, Call/SMS permissions |
+| Flutter & Dart | Cross-platform UI (Android/iOS) |
+| Riverpod | State management + dependency injection |
+| Flutter Plugins | Audio, permissions, notifications, device integrations |
 
 ### ⚙️ Core Systems (Offline-First)
+
 | Technology | Usage |
 |---|---|
-| Drift Database | Local persistence — Memories, Conversations, Medications |
-| WorkManager | Guaranteed background execution, survives device reboots |
-| SharedPreferences | Voice Speed, Contacts, Dialect preferences |
+| Drift (SQLite) | Local persistence: memories, conversations, medications |
+| WorkManager | Reliable background tasks, survives reboots |
+| SharedPreferences | Lightweight user settings (voice speed, contacts, dialect prefs) |
 
 ### 🤖 AI & NLP
+
 | Technology | Usage |
 |---|---|
 | Sarvam AI | Hinglish + regional dialect LLM |
-| flutter_tts | On-device speech with pitch, rate & emotion tuning |
-| Saavdhan (Scam Shield) | Hybrid Rule-based + AI fraud detection with Green/Amber/Red confidence system |
+| flutter_tts | On-device speech output with rate/pitch tuning |
+| Saavdhan Engine | Hybrid rule-based + AI-assisted fraud detection |
 
 ### 🟢 Google Technologies
+
 | Technology | Usage |
 |---|---|
-| Firebase Firestore | Cloud backup for memories & family summaries |
-| Firebase Storage | Cloud-synced media and audio |
-| TensorFlow Lite (LiteRT) | On-device embeddings & text classification (prepared) |
+| Firebase Firestore | Cloud backup for memories and summaries |
+| Firebase Storage | Cloud media/audio storage |
+| TensorFlow Lite (LiteRT) | On-device embeddings/classification (prepared) |
 
 ---
 
 ## 📁 Folder Structure
 
-```
+```text
 lib/
 ├── core/                  # Network observers, TTS, clients, global helpers
 ├── data/
-│   ├── local/             # Drift DB, DAOs, Entities, SharedPreferences
-│   └── repository/        # RAG implementation, Repositories
+│   ├── local/             # Drift DB, DAOs, entities, SharedPreferences
+│   └── repository/        # Repositories + RAG implementation
 ├── features/
 │   ├── chat/              # Chat interface
-│   ├── family/            # GhostwriterWorker & Family Hub
-│   ├── home/              # Main Radial Home Screen
-│   ├── medication/        # Medication Reminder Worker
-│   ├── scam_alert/        # Scam Detection UI
-│   ├── scamshield/        # Scam Detector Logic
-│   └── security/          # Security Check Worker
-└── main.dart              # Entry point
+│   ├── family/            # Ghostwriter worker + Family Hub
+│   ├── home/              # Radial Home Screen
+│   ├── medication/        # Medication reminder worker
+│   ├── scam_alert/        # Scam detection UI
+│   ├── scamshield/        # Scam detection logic
+│   └── security/          # Security check worker
+└── main.dart              # App entry point
 ```
 
 ---
@@ -149,25 +165,26 @@ lib/
 
 | Worker | Trigger | Action |
 |---|---|---|
-| 💊 `MedicationReminderWorker` | Scheduled daily | Voice reminder to take medicines; understands Hindi & English confirmations |
-| 🔒 `SecurityReminderWorker` | Evening schedule | Asks about door locks, gas, and safety checks |
-| 📬 `GhostwriterWorker` | Every 7 days | Reads memories → writes family summary → sends via WhatsApp |
+| 💊 `MedicationReminderWorker` | Daily schedule | Voice reminder + Hindi/English response understanding |
+| 🔒 `SecurityReminderWorker` | Evening schedule | Door/gas/safety checklist prompt |
+| 📬 `GhostwriterWorker` | Every 7 days | Read memories → generate summary → send to family |
 
 ---
 
 ## 🎥 Demo & Links
 
-- 🔗 **GitHub:** [github.com/Purjeet979/SnehaSathi](https://github.com/Purjeet979/SnehaSathi)
-- 🎥 **Demo Video (3 min):** [Google Drive](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
+- 🔗 **GitHub Repository:** [https://github.com/Purjeet979/SnehaSathi](https://github.com/Purjeet979/SnehaSathi)
+- 🎥 **Demo Video (3 min):** [https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
 
 ---
 
 ## 👥 Team
 
-**Developer:** Purjeet &nbsp;|&nbsp; **Submission:** Hackathon Project
+**Developer:** Purjeet  
+**Submission:** Hackathon Project
 
 ---
 
 <div align="center">
-🌸 &nbsp;<em>Built with care for those who shaped us</em>
+🌸 <em>Built with care for those who shaped us.</em>
 </div>
