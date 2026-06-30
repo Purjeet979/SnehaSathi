@@ -157,7 +157,7 @@ lib/
 
 ## 🎥 Demo & Links
 
-- 🔗 **GitHub:** [github.com/Purjeet979/HackWins](https://github.com/Purjeet979/HackWins)
+- 🔗 **GitHub:** [github.com/Purjeet979/SnehaSathi](https://github.com/Purjeet979/SnehaSathi)
 - 🎥 **Demo Video (3 min):** [Google Drive](https://drive.google.com/file/d/1ex35QU-pGOgB0uwNVdA2_kaKEmGRx_He/view?usp=sharing)
 
 ---
