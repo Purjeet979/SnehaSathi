@@ -162,3 +162,9 @@ Provide a short note on how you used the partner technology:
 ## 🏁 Final Words
 
 Building Sneh Saathi was an incredibly meaningful journey. Integrating real-time speech processing and ensuring compatibility with budget devices brought several engineering challenges (from Android audio focus bugs to MIUI TTS speech interruptions). Ultimately, seeing the app run smoothly on a physical phone and knowing it can help protect our elders was the greatest breakthrough. 🧡
+
+---
+
+<div align="center">
+  <img src="assets/images/evolution_journey.jpg" alt="Sneh Saathi Evolution Journey" width="600" />
+</div>
