@@ -172,3 +172,9 @@ No license has been added to this repository yet. Until a license is provided, a
 - [Sarvam AI](https://www.sarvam.ai/)
 - [Drift](https://drift.simonbinder.eu/)
 - [Android WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager)
+
+---
+
+<div align="center">
+  <img src="assets/images/evolution_journey.jpg" alt="Sneh Saathi Evolution Journey" width="600" />
+</div>
